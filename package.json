@@ -22,7 +22,8 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "resend": "^6.18.1",
-    "sharp": "^0.35.3",
+    "sharp": "0.34.5",
+    "@img/sharp-linux-x64": "0.34.5",
     "three": "^0.185.1"
   },
   "devDependencies": {
