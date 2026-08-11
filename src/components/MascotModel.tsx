@@ -68,9 +68,20 @@ const MODEL_LITE = modelsBase
 /**
  * Which variant this device should load, from the shared device tier
  * (src/lib/device.ts): lite → the 0.9MB decimated model, mobile → the
- * 3.6MB variant, full → the ~7MB lineup. The static tier never mounts the
- * 3D at all (CyberCard shows the poster), so it never reaches this point.
- * The ?model=lite|mobile|full query override still wins for testing.
+ * 0.9MB lite model too, full → the ~7MB lineup. The static tier never
+ * mounts the 3D at all (CyberCard shows the poster), so it never reaches
+ * this point. The ?model=lite|mobile|full query override still wins for
+ * testing.
+ *
+ * Phones were originally served the 3.6MB "mobile" variant via a
+ * progressive lite→mobile upgrade. The double download (4.5MB on a phone
+ * connection) plus the mid-session mount of the heavier mesh made some
+ * phones' renderers hiccup — a blank/white flash in the hero that then
+ * recovered. The lite model is decimated specifically for weak GPUs and
+ * looks near-identical at phone pixel ratios, so phones now stay on it
+ * and skip the upgrade entirely (one 0.9MB fetch, no swap). Desktop still
+ * gets the lite→full progressive upgrade, where it saves ~10s of first
+ * paint with no stability risk.
  */
 function modelUrl(): string {
   if (typeof window !== "undefined") {
@@ -81,8 +92,7 @@ function modelUrl(): string {
   }
   if (typeof navigator === "undefined") return MODEL_FULL; // SSR-safe
   const tier = getDeviceTier();
-  if (tier === "lite") return MODEL_LITE;
-  if (tier === "mobile") return MODEL_MOBILE;
+  if (tier === "lite" || tier === "mobile") return MODEL_LITE;
   return MODEL_FULL;
 }
 

@@ -10,9 +10,10 @@
  *    a 1GB phone, so it gets zero 3D cost.
  *  - lite:   save-data, 2G/slow-2G, ≤2GB RAM, or ≤2 CPU cores — the 0.9MB
  *    decimated model, dpr capped at 1, antialias off.
- *  - mobile: 3G, ≤4GB RAM, touch, or a <768px viewport — the 3.6MB mobile
- *    model, dpr ≤1.2, antialias off (MSAA is the biggest GPU cost at phone
- *    scale and the 1.2 cap barely hides it).
+ *  - mobile: 3G, ≤4GB RAM, touch, or a <768px viewport — rendered with the
+ *    0.9MB lite model (see MascotModel: phones skip the heavier variant to
+ *    avoid a mid-session model swap that made some renderers flash), dpr
+ *    ≤1.2, antialias off (MSAA is the biggest GPU cost at phone scale).
  *  - full:   everything else — the ~7MB lineup at native dpr.
  *
  * iOS Safari doesn't report deviceMemory, so the core-count / touch / width
