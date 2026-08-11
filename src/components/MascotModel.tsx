@@ -4,6 +4,7 @@ import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
+import { getDeviceTier } from "@/lib/device";
 
 /**
  * The hero model (public/models/modelToUse.glb): the 6 fashion characters as
@@ -65,12 +66,11 @@ const MODEL_LITE = modelsBase
   : local("modelToUse-lite.glb");
 
 /**
- * Which variant this device should load.
- *  - LITE: the truly crippled tier — save-data mode, 2G/slow-2G, or ≤2GB RAM.
- *    The 0.9MB model is all a struggling phone needs at hero scale.
- *  - MOBILE: phones and tablets (touch), ≤4GB RAM, and slow connections (3G).
- *    iOS doesn't report deviceMemory, hence the touch + width checks.
- *  - FULL: everything else — the full ~7MB lineup.
+ * Which variant this device should load, from the shared device tier
+ * (src/lib/device.ts): lite → the 0.9MB decimated model, mobile → the
+ * 3.6MB variant, full → the ~7MB lineup. The static tier never mounts the
+ * 3D at all (CyberCard shows the poster), so it never reaches this point.
+ * The ?model=lite|mobile|full query override still wins for testing.
  */
 function modelUrl(): string {
   if (typeof window !== "undefined") {
@@ -80,22 +80,9 @@ function modelUrl(): string {
     }
   }
   if (typeof navigator === "undefined") return MODEL_FULL; // SSR-safe
-  const nav = navigator as Navigator & {
-    deviceMemory?: number;
-    maxTouchPoints?: number;
-    connection?: { effectiveType?: string; saveData?: boolean };
-  };
-  if (nav.connection?.saveData) return MODEL_LITE;
-  const eff = nav.connection?.effectiveType;
-  if (eff === "slow-2g" || eff === "2g") return MODEL_LITE;
-  if (eff === "3g") return MODEL_MOBILE;
-  const mem = nav.deviceMemory;
-  if (typeof mem === "number" && mem > 0 && mem <= 2) return MODEL_LITE;
-  if (typeof mem === "number" && mem > 0 && mem <= 4) return MODEL_MOBILE;
-  // Touch screens = phones/tablets (catches landscape too, where the width
-  // check below would miss them); the 3.6MB variant is plenty at phone scale.
-  if (nav.maxTouchPoints > 0) return MODEL_MOBILE;
-  if (window.innerWidth < 768) return MODEL_MOBILE;
+  const tier = getDeviceTier();
+  if (tier === "lite") return MODEL_LITE;
+  if (tier === "mobile") return MODEL_MOBILE;
   return MODEL_FULL;
 }
 

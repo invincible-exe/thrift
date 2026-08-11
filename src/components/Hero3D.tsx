@@ -6,6 +6,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { getDeviceTier, type DeviceTier } from "@/lib/device";
 import { MascotModel } from "./MascotModel";
 
 /**
@@ -235,19 +236,23 @@ export default function Hero3D({
   autoRotate?: boolean;
   rotationTarget?: RefObject<RotationTarget>;
 } = {}) {
-  // The model has ~3M vertices — render at native dpr on desktop but cap
-  // phones/tablets at 1.2 to keep the hero smooth (1.5 was still heavy for
-  // mid-range phones, especially with the shadow re-render below).
+  // The model has ~3M vertices — tune the renderer to the device tier:
+  // native dpr on desktop, capped lower on phones, and on the lite tier
+  // (≤2GB RAM / ≤2 cores / 2G) render at exactly 1x with antialiasing off
+  // — MSAA is the single biggest GPU cost and barely matters at 1x.
   // `ssr: false` in Hero.tsx means `window` is safe here.
+  const tier: DeviceTier = typeof window !== "undefined" ? getDeviceTier() : "full";
   const smallScreen = typeof window !== "undefined" && window.innerWidth < 768;
-  const dpr: [number, number] = smallScreen ? [1, 1.2] : [1, 2];
+  const dpr: [number, number] =
+    tier === "lite" || tier === "static" ? [1, 1] : smallScreen ? [1, 1.2] : [1, 2];
 
   return (
     <div className="relative h-full w-full">
       <Canvas
         camera={{ position: CAMERA_POSITION, fov: CAMERA_FOV }}
         gl={{
-          antialias: true,
+          // Weak GPUs (lite + mobile tiers) skip MSAA entirely.
+          antialias: tier === "full",
           alpha: true,
           outputColorSpace: THREE.SRGBColorSpace,
           toneMapping: THREE.ACESFilmicToneMapping,
