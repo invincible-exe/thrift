@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // sharp ships a platform-native binary (libvips) that Turbopack can't
+  // bundle — bundling its JS but dropping the .so makes every upload route
+  // 500 with "Could not load the sharp module". Loading it from node_modules
+  // at runtime (server-only) keeps the native binary with the package.
+  serverExternalPackages: ["sharp"],
   images: {
     // Default-deny image hosts (zero trust). Only these hosts are ever used:
     //  - images.unsplash.com / plus.unsplash.com / source.unsplash.com — the
