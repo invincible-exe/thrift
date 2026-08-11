@@ -65,14 +65,23 @@ export interface PaystackApiResult {
 
 async function api(path: string, init?: RequestInit): Promise<PaystackApiResult> {
   const secret = paystackSecret();
-  const res = await fetch(`${PAYSTACK_BASE}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${secret}`,
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${PAYSTACK_BASE}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+    });
+  } catch (err) {
+    // Network failure (timeout, DNS, connection refused) must never bubble
+    // up as a 500 — every caller treats `ok: false` as "temporarily
+    // unavailable" and responds gracefully (e.g. 502 with a retry hint).
+    console.error(`Paystack request failed (${path}):`, err);
+    return { ok: false, status: 0, message: "Paystack is unreachable. Try again shortly." };
+  }
   const body = (await res.json().catch(() => ({}))) as {
     status?: boolean;
     message?: string;

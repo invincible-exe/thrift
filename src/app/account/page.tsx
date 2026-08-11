@@ -766,18 +766,31 @@ function OrderCard({
   };
 
   const meetupPoint = order.productSnapshot.meetupPoint;
+  // Snapshots can hold a missing/placeholder image URL (pending orders start
+  // with {} and get filled at finalize). <Image> throws on any src that isn't
+  // a valid URL, which would crash the buyer's whole account page — fall back
+  // to a plain tile instead of rendering an image.
+  const imgSrc = order.productSnapshot.imageUrl;
+  const imgValid =
+    typeof imgSrc === "string" && /^https?:\/\//i.test(imgSrc);
 
   return (
     <li className="rounded-2xl border border-line bg-paper p-4">
       <div className="flex items-center gap-4">
         <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sand">
-          <Image
-            src={order.productSnapshot.imageUrl}
-            alt={order.productSnapshot.title}
-            fill
-            sizes="56px"
-            className="object-cover"
-          />
+          {imgValid ? (
+            <Image
+              src={imgSrc}
+              alt={order.productSnapshot.title}
+              fill
+              sizes="56px"
+              className="object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-xl">
+              🧵
+            </div>
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate font-display text-sm font-bold">{order.productSnapshot.title}</p>
