@@ -1,0 +1,280 @@
+/* Premium drop-card display for the hero's 3D lineup: a dark, softly lit
+   card with the model front-and-center in a display window, an editorial
+   header/footer and a lime-and-ember spotlight. Scoped as a CSS module so
+   the generic class names can't collide with app styles. */
+
+.container {
+  position: relative;
+  height: 100%;
+  aspect-ratio: 190 / 254;
+  max-width: 100%;
+  margin-inline: auto;
+  transition: transform 200ms ease;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Press-in feedback — scale instead of resizing so the layout stays stable. */
+.container:active {
+  transform: scale(0.97);
+}
+
+/* 5x5 hover grid. Each tracker is absolutely positioned inside its grid
+   cell and covers that cell fully; hovering any cell tilts the card toward
+   the cursor. The grid sits above everything (z-200) and owns all pointer
+   events. */
+.canvas {
+  perspective: 900px;
+  inset: 0;
+  z-index: 200;
+  position: absolute;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr 1fr 1fr;
+  gap: 0;
+  grid-template-areas:
+    "tr-1  tr-2  tr-3  tr-4  tr-5"
+    "tr-6  tr-7  tr-8  tr-9  tr-10"
+    "tr-11 tr-12 tr-13 tr-14 tr-15"
+    "tr-16 tr-17 tr-18 tr-19 tr-20"
+    "tr-21 tr-22 tr-23 tr-24 tr-25";
+  /* Vertical swipes scroll the page on touch; horizontal drags rotate. */
+  touch-action: pan-y;
+}
+
+.tracker {
+  position: absolute;
+  z-index: 200;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+/* One tilt rule instead of 25 — each tracker sets --rx/--ry for its cell. */
+.tracker:hover ~ .card {
+  transition: 125ms ease-in-out;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) rotateZ(0deg);
+  filter: brightness(1.12) saturate(1.04);
+}
+
+/* While dragging to rotate, flatten the hover tilt so the turntable is the
+   whole story (more specific than the rule above). */
+.dragging .tracker:hover ~ .card {
+  transition: 125ms ease-in-out;
+  transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+  filter: brightness(1.12);
+}
+
+.dragging .tracker {
+  cursor: grabbing;
+}
+
+.card {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 24px;
+  overflow: hidden;
+  transition: 700ms;
+  background:
+    radial-gradient(120% 90% at 50% 40%, rgba(217, 242, 77, 0.09), rgba(217, 242, 77, 0.02) 55%, transparent 75%),
+    radial-gradient(85% 55% at 50% 118%, rgba(255, 90, 31, 0.18), transparent 65%),
+    linear-gradient(165deg, #221e19 0%, #15130f 55%, #0c0a08 100%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    0 30px 60px -18px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 44px rgba(0, 0, 0, 0.4);
+}
+
+.cardContent {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Warm lime + ember spotlight behind the lineup. */
+.spotlight {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(62% 42% at 50% 44%, rgba(217, 242, 77, 0.16), transparent 70%),
+    radial-gradient(55% 38% at 50% 76%, rgba(255, 90, 31, 0.12), transparent 70%);
+  opacity: 0.75;
+  transition: opacity 350ms ease;
+  pointer-events: none;
+}
+
+/* The model renders in the display window between header and footer. Top
+   padding guarantees headroom so the lineup never crowds the card's top
+   edge; pointer-events: none keeps the tilt trackers in full control. */
+.modelSlot {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 72px 20px 100px;
+  pointer-events: none;
+}
+
+/* --- Editorial header --------------------------------------------------- */
+
+.header {
+  position: absolute;
+  top: 18px;
+  left: 22px;
+  right: 22px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  pointer-events: none;
+}
+
+.wordmark {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.dropIndex {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropIndex::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #d9f24d;
+  box-shadow: 0 0 10px rgba(217, 242, 77, 0.85);
+}
+
+/* --- Editorial footer --------------------------------------------------- */
+
+.footer {
+  position: absolute;
+  bottom: 20px;
+  left: 22px;
+  right: 22px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 6vw, 42px);
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  line-height: 0.92;
+  text-transform: uppercase;
+  background: linear-gradient(92deg, #d9f24d 5%, #ff5a1f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 8px 26px rgba(217, 242, 77, 0.22));
+  transition: transform 300ms ease;
+}
+
+.rule {
+  height: 1px;
+  margin: 14px 0 10px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.03));
+}
+
+.footerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.meta {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.hint {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 5px 11px;
+  white-space: nowrap;
+  transition: opacity 300ms ease, border-color 300ms ease;
+}
+
+/* --- Glare sweep -------------------------------------------------------- */
+
+.cardGlare {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: linear-gradient(
+    125deg,
+    rgba(255, 255, 255, 0) 32%,
+    rgba(255, 255, 255, 0.06) 46%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.06) 54%,
+    rgba(255, 255, 255, 0) 68%
+  );
+  opacity: 0;
+  transition: opacity 350ms ease;
+  pointer-events: none;
+}
+
+/* --- Hover reveals ------------------------------------------------------ */
+
+.tracker:hover ~ .card .spotlight {
+  opacity: 1;
+}
+
+.tracker:hover ~ .card .cardGlare {
+  opacity: 1;
+}
+
+.tracker:hover ~ .card .hint {
+  opacity: 0;
+}
+
+.tracker:hover ~ .card .title {
+  transform: translateY(-3px);
+}
+
+/* Respect the site-wide reduced-motion preference. */
+@media (prefers-reduced-motion: reduce) {
+  .container:active {
+    transform: none;
+  }
+  .card,
+  .tracker:hover ~ .card,
+  .dragging .tracker:hover ~ .card {
+    transition: none;
+  }
+  .title,
+  .hint,
+  .spotlight,
+  .cardGlare {
+    transition: none;
+  }
+}

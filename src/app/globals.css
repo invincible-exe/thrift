@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Semantic tokens — swap these values under .dark so every bg-cream /
+   text-ink / border-line utility across the app flips automatically. */
+:root {
+  --cream: #f3eee7;
+  --paper: #faf7f1;
+  --ink: #16130f;
+  --ink-soft: #5b544a;
+  --line: #e3dbcf;
+  --sand: #e9e1d5;
+  --accent: #ff4d00;
+  --accent-deep: #e04300;
+  --accent-soft: #ffe3d4;
+  --lime: #d9f24d;
+  color-scheme: light;
+}
+
+.dark {
+  --cream: #14110e;
+  --paper: #1e1915;
+  --ink: #f2ede4;
+  --ink-soft: #a89e8f;
+  --line: rgb(242 237 228 / 0.14);
+  --sand: #2b251e;
+  --accent: #ff5a1f;
+  --accent-deep: #ff6a2b;
+  --accent-soft: #34190c;
+  --lime: #d9f24d;
+  color-scheme: dark;
+}
+
+/* `inline` makes utilities reference the variable (e.g. `background:
+   var(--cream)`) so the runtime .dark swap above takes effect everywhere. */
+@theme inline {
+  --color-cream: var(--cream);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-sand: var(--sand);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-soft: var(--accent-soft);
+  --color-lime: var(--lime);
+
+  --font-display: var(--font-archivo);
+  --font-sans: var(--font-inter);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  /* Smooth fade for the no-motion (or no-wipe) theme switch. */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
