@@ -201,7 +201,16 @@ export default function CyberCard() {
             <div className={styles.modelSlot}>
               {render3D ? (
                 <ErrorBoundary fallback={<StaticPoster />}>
-                  <Suspense fallback={null}>
+                  <Suspense
+                    fallback={
+                      // While the model streams in, show a soft studio glow
+                      // instead of an empty window — the spotlight behind
+                      // the slot makes it look intentional, not broken.
+                      <div className="flex h-full w-full items-center justify-center">
+                        <div className="h-24 w-24 animate-pulse rounded-full bg-gradient-to-br from-lime/30 via-accent/20 to-transparent blur-2xl" />
+                      </div>
+                    }
+                  >
                     <Hero3D interactive={false} rotationTarget={rotation} />
                   </Suspense>
                 </ErrorBoundary>

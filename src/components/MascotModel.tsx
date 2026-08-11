@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
@@ -126,7 +126,14 @@ const FLOAT_SPEED = 1.1;
 export function MascotModel() {
   // Decided once per mount — deterministic per device, so the preload below
   // always matches what this component renders.
-  const [url] = useState(modelUrl);
+  const [targetUrl] = useState(modelUrl);
+  // Progressive loading: render the lite model (~1MB, streams in a couple of
+  // seconds even on 3G) the moment the component mounts, then swap in the
+  // device's full tier (mobile 3.6MB / full 7.2MB) once it has finished
+  // downloading in the background. The hero never sits as an empty hole
+  // while a large GLB crawls down the wire — on desktop the lineup appears
+  // ~10s sooner, then silently upgrades in place.
+  const [url, setUrl] = useState(() => MODEL_LITE);
   const { scene } = useGLTF(url);
   const groupRef = useRef<THREE.Group>(null);
   // Respect the site-wide reduced-motion preference (checked once on mount).
@@ -209,14 +216,40 @@ export function MascotModel() {
       Math.sin(clock.elapsedTime * FLOAT_SPEED) * FLOAT_AMPLITUDE;
   });
 
+  // Upgrade the visible tier once the device's target model has finished
+  // loading (module-scope preload already started the fetch). TierUpgrader
+  // suspends until the loader cache holds the target — then we swap the URL,
+  // the new scene re-mounts instantly from cache, and the material /
+  // vertex-color pass re-runs on the richer geometry. Its own Suspense
+  // boundary keeps the suspense from bubbling to Stage (which would flash
+  // the fallback over the already-visible lite lineup). No-op on devices
+  // whose target tier IS the lite model.
   return (
-    <group ref={groupRef} position={[0, FEET_Y, 0]}>
-      <primitive object={scene} />
-    </group>
+    <>
+      <group ref={groupRef} position={[0, FEET_Y, 0]}>
+        <primitive object={scene} />
+      </group>
+      {url !== targetUrl && (
+        <Suspense fallback={null}>
+          <TierUpgrader url={targetUrl} onUpgraded={() => setUrl(targetUrl)} />
+        </Suspense>
+      )}
+    </>
   );
 }
 
-// Kick off the fetch for the variant this device will use as soon as the
-// hero module loads. Safe at module scope: Hero3D is dynamically imported
-// with ssr:false, so this only ever evaluates in the browser.
+function TierUpgrader({ url, onUpgraded }: { url: string; onUpgraded: () => void }) {
+  useGLTF(url);
+  useEffect(() => {
+    onUpgraded();
+  }, [onUpgraded]);
+  return null;
+}
+
+// Kick off the fetches for this device before the hero renders: the lite
+// model (always the first paint — instant progressive-load base) and the
+// device's target tier (the background upgrade). Safe at module scope:
+// Hero3D is dynamically imported with ssr:false, so this only ever
+// evaluates in the browser.
+useGLTF.preload(MODEL_LITE);
 useGLTF.preload(modelUrl());

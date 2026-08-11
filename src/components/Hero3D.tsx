@@ -109,7 +109,13 @@ function useResponsiveScale(): number {
   }, [size.width, size.height]);
 }
 
-function Stage({ modelRef }: { modelRef?: RefObject<THREE.Group | null> }) {
+function Stage({
+  modelRef,
+  smallScreen = false,
+}: {
+  modelRef?: RefObject<THREE.Group | null>;
+  smallScreen?: boolean;
+}) {
   const scale = useResponsiveScale();
   return (
     // Park the stage on the camera target minus a small downward bias, so
@@ -131,7 +137,12 @@ function Stage({ modelRef }: { modelRef?: RefObject<THREE.Group | null> }) {
           scale={7}
           blur={2.5}
           far={1.6}
-          resolution={512}
+          resolution={smallScreen ? 256 : 512}
+          // Render the shadow depth map ONCE instead of every frame — the
+          // lineup only floats ±0.1 units, so a static blurred shadow is
+          // visually identical but skips a full scene re-render per frame
+          // (the single biggest GPU win on phones).
+          frames={1}
           color="#000000"
         />
       </Suspense>
@@ -155,9 +166,11 @@ export type RotationTarget = { x: number; y: number };
 function RotatingStage({
   autoRotate = false,
   rotationTarget,
+  smallScreen = false,
 }: {
   autoRotate?: boolean;
   rotationTarget?: RefObject<RotationTarget>;
+  smallScreen?: boolean;
 }) {
   const modelRef = useRef<THREE.Group>(null);
   const reducedMotion = useRef(false);
@@ -189,7 +202,7 @@ function RotatingStage({
     }
   });
 
-  return <Stage modelRef={modelRef} />;
+  return <Stage modelRef={modelRef} smallScreen={smallScreen} />;
 }
 
 /**
@@ -223,10 +236,11 @@ export default function Hero3D({
   rotationTarget?: RefObject<RotationTarget>;
 } = {}) {
   // The model has ~3M vertices — render at native dpr on desktop but cap
-  // phones/tablets at 1.5 to keep the hero smooth. `ssr: false` in Hero.tsx
-  // means `window` is safe here.
+  // phones/tablets at 1.2 to keep the hero smooth (1.5 was still heavy for
+  // mid-range phones, especially with the shadow re-render below).
+  // `ssr: false` in Hero.tsx means `window` is safe here.
   const smallScreen = typeof window !== "undefined" && window.innerWidth < 768;
-  const dpr: [number, number] = smallScreen ? [1, 1.5] : [1, 2];
+  const dpr: [number, number] = smallScreen ? [1, 1.2] : [1, 2];
 
   return (
     <div className="relative h-full w-full">
@@ -250,7 +264,7 @@ export default function Hero3D({
         <directionalLight position={[-1.5, 2.5, -5]} intensity={0.55} />
         {interactive ? (
           <>
-            <Stage />
+            <Stage smallScreen={smallScreen} />
             <OrbitControls
               target={[0, CAMERA_TARGET_Y + STAGE_OFFSET_Y, 0]}
               enablePan={false}
@@ -264,7 +278,11 @@ export default function Hero3D({
             />
           </>
         ) : (
-          <RotatingStage autoRotate={autoRotate} rotationTarget={rotationTarget} />
+          <RotatingStage
+            autoRotate={autoRotate}
+            rotationTarget={rotationTarget}
+            smallScreen={smallScreen}
+          />
         )}
       </Canvas>
     </div>
