@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import type { Product } from "@/lib/types";
 import { formatKes } from "@/lib/format";
@@ -8,7 +9,7 @@ import { useShop } from "@/context/ShopContext";
 import { useAuth } from "@/context/AuthContext";
 import { toggleWishlist, useWishlistIds } from "@/lib/db";
 import { gsap, useGSAP } from "@/lib/gsap";
-import SellerClosetModal from "./SellerClosetModal";
+import RatingStars from "./ui/RatingStars";
 import ProductGalleryModal from "./ProductGalleryModal";
 
 export default function ProductCard({ product }: { product: Product }) {
@@ -54,7 +55,6 @@ export default function ProductCard({ product }: { product: Product }) {
   const saved = wishlistIds?.includes(product.id) ?? false;
   const [optimistic, setOptimistic] = useState<boolean | null>(null);
   const [resetKey, setResetKey] = useState("");
-  const [closetOpen, setClosetOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
 
   // Drop the optimistic state when the product changes or a pending
@@ -81,20 +81,28 @@ export default function ProductCard({ product }: { product: Product }) {
     <article className="group relative">
       <div
         ref={artRef}
-        onClick={() => setGalleryOpen(true)}
-        className="relative aspect-[4/5] cursor-zoom-in overflow-hidden rounded-2xl bg-sand"
+        className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-sand"
       >
-        <Image
-          src={product.imageUrl}
-          alt={product.title}
-          fill
-          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-          quality={95}
-          className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        {/* The whole photo is a link to the piece's public page (SEO + easy
+            sharing); the floating buttons below are siblings, not children,
+            so there's no nested-interactive problem. */}
+        <Link
+          href={`/product/${product.id}`}
+          aria-label={`View ${product.title}`}
+          className="absolute inset-0 z-0 block cursor-pointer"
+        >
+          <Image
+            src={product.imageUrl}
+            alt={product.title}
+            fill
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+            quality={95}
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        </Link>
 
-        <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+        <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-1.5">
           <span className="rounded-full bg-accent px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-white">
             1-of-1
           </span>
@@ -132,7 +140,7 @@ export default function ProductCard({ product }: { product: Product }) {
             handleSave();
           }}
           aria-label={isSaved ? "Remove from saved" : "Save piece"}
-          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-paper/85 text-lg backdrop-blur transition hover:scale-110 active:scale-95"
+          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-paper/85 text-lg backdrop-blur transition hover:scale-110 active:scale-95"
         >
           {isSaved ? "❤️" : "🤍"}
         </button>
@@ -150,7 +158,7 @@ export default function ProductCard({ product }: { product: Product }) {
           </div>
         )}
 
-        <div className="absolute inset-x-3 bottom-3 translate-y-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+        <div className="absolute inset-x-3 bottom-3 z-10 translate-y-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -168,19 +176,31 @@ export default function ProductCard({ product }: { product: Product }) {
           <p className="text-[11px] font-bold uppercase tracking-widest text-ink-soft">
             {product.brand} · {product.category}
           </p>
-          <h3 className="mt-0.5 truncate font-display text-base font-bold">{product.title}</h3>
+          <Link
+            href={`/product/${product.id}`}
+            className="mt-0.5 block truncate font-display text-base font-bold transition hover:text-accent"
+          >
+            {product.title}
+          </Link>
           <p className="mt-0.5 text-xs text-ink-soft">
             {product.size} · {product.condition}
             {product.era ? ` · ${product.era}` : ""}
           </p>
-          {product.sellerId && product.sellerName && (
-            <button
-              onClick={() => setClosetOpen(true)}
-              className="mt-1.5 text-[11px] font-bold text-accent underline-offset-2 transition hover:underline"
-            >
-              View {product.sellerName}&apos;s closet
-            </button>
-          )}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            {product.sellerId && product.sellerName ? (
+              <>
+                <Link
+                  href={`/seller/${product.sellerId}`}
+                  className="text-[11px] font-bold text-accent underline-offset-2 transition hover:underline"
+                >
+                  {product.sellerName}
+                </Link>
+                <RatingStars sellerId={product.sellerId} size="xs" />
+              </>
+            ) : (
+              <RatingStars sellerId={null} size="xs" />
+            )}
+          </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           <p className="whitespace-nowrap font-display text-lg font-extrabold">{formatKes(product.priceKes)}</p>
@@ -192,19 +212,6 @@ export default function ProductCard({ product }: { product: Product }) {
           </button>
         </div>
       </div>
-
-      {closetOpen && product.sellerId && (
-        <SellerClosetModal
-          sellerId={product.sellerId}
-          sellerName={product.sellerName ?? null}
-          excludeProductId={product.id}
-          onClose={() => setClosetOpen(false)}
-          onPick={(p) => {
-            setClosetOpen(false);
-            openCheckout(p);
-          }}
-        />
-      )}
 
       {galleryOpen && (
         <ProductGalleryModal product={product} onClose={() => setGalleryOpen(false)} />

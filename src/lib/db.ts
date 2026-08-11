@@ -1554,3 +1554,67 @@ export async function createPlatformProduct(input: NewPlatformProductInput): Pro
   if (error) throw error;
   return String(data);
 }
+
+/* ------------------------------------------------------------------ */
+/* Ratings (public trust signals)                                      */
+/* ------------------------------------------------------------------ */
+
+export interface RatingSummary {
+  /** Average score rounded to 1 decimal; null when there are no ratings yet. */
+  average: number | null;
+  total: number;
+}
+
+/**
+ * Average + count of post-purchase ratings for one seller (community
+ * pieces) or the whole shop (sellerId null). Backed by the security-definer
+ * get_rating_summary RPC so anonymous browsers can see the trust signal
+ * even though ratings rows themselves are RLS-private.
+ */
+export async function fetchRatingSummary(sellerId: string | null): Promise<RatingSummary> {
+  const client = getBrowserClient();
+  if (!client) throw new Error("SUPABASE_NOT_CONFIGURED");
+  const { data, error } = await client.rpc("get_rating_summary", {
+    p_seller_id: sellerId ?? null,
+  });
+  if (error) {
+    console.error("rating summary fetch failed:", error);
+    return { average: null, total: 0 };
+  }
+  const row = Array.isArray(data) ? data[0] : undefined;
+  return {
+    average: row && row.avg_score != null ? Number(row.avg_score) : null,
+    total: Number(row?.total ?? 0),
+  };
+}
+
+/** Hook: one fetch per seller (or the shop-wide rating when sellerId is null). */
+export function useRatingSummary(sellerId: string | null): RatingSummary | null {
+  const [summary, setSummary] = useState<RatingSummary | null>(null);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    let active = true;
+    fetchRatingSummary(sellerId).then((s) => {
+      if (active) setSummary(s);
+    });
+    return () => {
+      active = false;
+    };
+  }, [sellerId]);
+
+  return summary;
+}
+
+/** Whether the user already rated a specific order (their own row — RLS-safe). */
+export async function hasRatedOrder(uid: string, orderId: string): Promise<boolean> {
+  const client = getBrowserClient();
+  if (!client) return false;
+  const { data } = await client
+    .from("ratings")
+    .select("id")
+    .eq("order_id", orderId)
+    .eq("user_id", uid)
+    .maybeSingle();
+  return Boolean(data);
+}

@@ -838,6 +838,28 @@ export interface Database {
         };
         Returns: undefined;
       };
+      get_rating_summary: {
+        Args: {
+          p_seller_id?: string | null;
+        };
+        Returns: {
+          avg_score: number;
+          total: number;
+        }[];
+      };
+      get_seller_profile: {
+        Args: {
+          p_seller_id: string;
+        };
+        Returns: {
+          name: string;
+          member_since: string;
+          location_label: string | null;
+          avg_score: number | null;
+          rating_count: number;
+          sales: number;
+        }[];
+      };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

@@ -10,6 +10,7 @@ import {
   dispatchPendingPayouts,
   disputeOrder,
   fetchBanks,
+  hasRatedOrder,
   releaseExpiredEscrow,
   reportPayoutMissing,
   updatePayoutSettings,
@@ -30,6 +31,7 @@ import BoostModal from "@/components/BoostModal";
 import LocationPicker from "@/components/LocationPicker";
 import MeetupSafety from "@/components/MeetupSafety";
 import OrderChat from "@/components/OrderChat";
+import FeedbackRating from "@/components/ui/FeedbackRating";
 import { useNow } from "@/lib/use-now";
 import type { Listing, Location, Order, Payout } from "@/lib/types";
 import Link from "next/link";
@@ -688,13 +690,31 @@ function OrderCard({
   confirmMsg: { id: string; text: string } | null;
 }) {
   const { showToast } = useShop();
+  const { user } = useAuth();
   const [disputeOpen, setDisputeOpen] = useState(false);
+  const [rateOpen, setRateOpen] = useState(false);
+  const [ratedAlready, setRatedAlready] = useState<boolean | null>(null);
   const [disputeReason, setDisputeReason] = useState("");
   const [disputeBusy, setDisputeBusy] = useState(false);
   const [disputeMsg, setDisputeMsg] = useState<string | null>(null);
   const [cancelArm, setCancelArm] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelMsg, setCancelMsg] = useState<string | null>(null);
+
+  const uid = user?.id ?? null;
+
+  // Past purchases can be rated here even if the buyer skipped the checkout
+  // success screen — check once whether they already rated this order.
+  useEffect(() => {
+    if (!uid) return;
+    let active = true;
+    hasRatedOrder(uid, order.id).then((yes) => {
+      if (active) setRatedAlready(yes);
+    });
+    return () => {
+      active = false;
+    };
+  }, [uid, order.id]);
 
   const held = Boolean(order.escrowHeldAt && !order.receiptConfirmedAt && !order.cancelledAt);
   const noShowReady = Boolean(
@@ -834,6 +854,28 @@ function OrderCard({
                     : cancelArm
                       ? "Confirm cancel & refund"
                       : "Seller didn't show — cancel"}
+                </button>
+              )}
+            </div>
+          )}
+          {/* Post-purchase rating — the trust signal shown on sellers' pieces.
+              Offered on any live or received order (skipped when cancelled or
+              disputed) until the buyer has rated it once. */}
+          {!order.cancelledAt && !order.disputedAt && (held || order.receiptConfirmedAt) && (
+            <div className="border-t border-line pt-3">
+              {ratedAlready === true ? (
+                <p className="text-xs font-semibold text-ink-soft">⭐ Rated — thanks for the feedback!</p>
+              ) : rateOpen ? (
+                <FeedbackRating
+                  orderId={order.id}
+                  onSubmitted={() => setRatedAlready(true)}
+                />
+              ) : (
+                <button
+                  onClick={() => setRateOpen(true)}
+                  className="rounded-full border border-line px-4 py-1.5 text-[11px] font-bold text-ink-soft transition hover:border-ink hover:text-ink"
+                >
+                  ⭐ How was this drop?
                 </button>
               )}
             </div>
