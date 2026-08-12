@@ -83,8 +83,8 @@ export default function SellerProfileClient({
         </h2>
         <p className="mt-1 text-sm text-ink-soft">
           {products.length > 0
-            ? `${products.length} live piece${products.length === 1 ? "" : "s"} — 1-of-1, so they go fast.`
-            : "Nothing live right now — sellers restock weekly."}
+            ? `${products.length} live piece${products.length === 1 ? "" : "s"}: 1-of-1, so they go fast.`
+            : "Nothing live right now. Sellers restock weekly."}
         </p>
 
         {products.length > 0 ? (

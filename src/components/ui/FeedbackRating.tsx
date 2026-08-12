@@ -93,8 +93,8 @@ export default function FeedbackRating({
         <p className="mt-1 text-sm text-ink-soft">
           {selected ? (
             <>
-              You rated this drop <span className="font-bold text-ink">{FACE_LABELS[selected]}</span> —
-              it helps us curate better.
+              You rated this drop <span className="font-bold text-ink">{FACE_LABELS[selected]}</span>.
+              It helps us curate better.
             </>
           ) : (
             "It helps us curate better."
@@ -108,7 +108,7 @@ export default function FeedbackRating({
     <div className="rounded-2xl border border-line bg-sand/60 px-6 py-6">
       <p className="text-center font-display text-lg font-black">How was your experience?</p>
       <p className="mt-0.5 text-center text-xs text-ink-soft">
-        Tap a face — your honest take helps the next drop land.
+        Tap a face. Your honest take helps the next drop land.
       </p>
 
       {/* Shared eye + mouth shapes, referenced via <use> below. */}

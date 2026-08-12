@@ -61,14 +61,14 @@ export default function ProductDetailClient({
     );
   };
 
-  const shareText = `${product.title} — ${formatKes(product.priceKes)} · 1-of-1 on 10/10 Thrifts`;
+  const shareText = `${product.title}: ${formatKes(product.priceKes)} · 1-of-1 on 10/10 Thrifts`;
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText}\n${canonicalUrl}`)}`;
 
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(canonicalUrl);
       setCopied(true);
-      showToast("Link copied — share it anywhere.");
+      showToast("Link copied. Share it anywhere.");
       setTimeout(() => setCopied(false), 2000);
     } catch {
       showToast("Couldn't copy the link.");
@@ -99,7 +99,7 @@ export default function ProductDetailClient({
             <Image
               key={photos[index]}
               src={photos[index]}
-              alt={`${product.title} — photo ${index + 1}`}
+              alt={`${product.title}, photo ${index + 1}`}
               fill
               sizes="(min-width: 1024px) 50vw, 100vw"
               quality={95}
@@ -222,7 +222,7 @@ export default function ProductDetailClient({
               </div>
               {!ownsIt && (
                 <p className="mt-2 text-xs text-ink-soft">
-                  Pay with M-Pesa STK push or card — secured server-side. First payment wins.
+                  Pay with M-Pesa STK push or card. Secured server-side. First payment wins.
                 </p>
               )}
 
@@ -248,7 +248,7 @@ export default function ProductDetailClient({
               <span className="text-3xl">💨</span>
               <p className="mt-2 font-display text-lg font-black">This drop is claimed</p>
               <p className="mx-auto mt-1 max-w-xs text-sm text-ink-soft">
-                1-of-1 pieces go fast — someone beat you to it. Fresh drops land weekly.
+                1-of-1 pieces go fast. Someone beat you to it. Fresh drops land weekly.
               </p>
               <Link
                 href="/#drops"
@@ -266,7 +266,7 @@ export default function ProductDetailClient({
                 <p className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
                   {s.label}
                 </p>
-                <p className="mt-0.5 truncate font-display text-sm font-bold">{s.value || "—"}</p>
+                <p className="mt-0.5 truncate font-display text-sm font-bold">{s.value || "None"}</p>
               </div>
             ))}
           </div>

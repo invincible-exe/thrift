@@ -143,7 +143,7 @@ export default function SellModal() {
     }
     if (!meetup) {
       setPhase("error");
-      setMessage("Pick a meetup location — every piece needs one so buyers know where to find you.");
+      setMessage("Pick a meetup location. Every piece needs one so buyers know where to find you.");
       return;
     }
     if (!Number.isFinite(price) || price <= 0) {
@@ -199,7 +199,7 @@ export default function SellModal() {
       // never got a response — usually a dropped connection, not a bug.
       // Say so plainly instead of leaking the technical message.
       if (/failed to fetch|networkerror|load failed|typeerror/i.test(detail)) {
-        setMessage("Couldn't reach the server — check your connection and try again.");
+        setMessage("Couldn't reach the server. Check your connection and try again.");
       } else {
         setMessage(`Couldn't create the listing: ${detail.slice(0, 160)}`);
       }
@@ -219,7 +219,7 @@ export default function SellModal() {
             <span className="flex h-20 w-20 items-center justify-center rounded-full bg-lime text-4xl">✓</span>
             <h2 className="mt-4 font-display text-3xl font-black">Added to your closet.</h2>
             <p className="mt-2 max-w-xs text-sm text-ink-soft">
-              Your piece is now in your closet. It&apos;ll hit the feed once approved — you keep{" "}
+              Your piece is now in your closet. It&apos;ll hit the feed once approved. You keep{" "}
               <span className="font-bold text-ink">up to 90%</span> of every sale.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -244,7 +244,7 @@ export default function SellModal() {
               <div>
                 <h2 className="font-display text-2xl font-black tracking-tight">Sell a piece</h2>
                 <p className="mt-1 text-sm text-ink-soft">
-                  Add it to your closet — once approved it hits the feed. You keep up to 90% of
+                  Add it to your closet. Once approved it hits the feed. You keep up to 90% of
                   every sale.
                 </p>
               </div>
@@ -354,7 +354,7 @@ export default function SellModal() {
                   </p>
                 ) : (
                   <p className="mt-1.5 text-xs text-ink-soft">
-                    Required — buyers see this as the area you meet in when the piece sells. You can
+                    Required. Buyers see this as the area you meet in when the piece sells. You can
                     agree on the exact spot in the order chat.
                   </p>
                 )}

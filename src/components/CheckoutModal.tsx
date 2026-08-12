@@ -133,7 +133,7 @@ function CheckoutPanel({ product, onClose }: { product: Product; onClose: () => 
   };
 
   const FRIENDLY_ERRORS: Record<string, string> = {
-    PIECE_SOLD: "Someone just grabbed this piece. Keep scrolling — new drops land weekly.",
+    PIECE_SOLD: "Someone just grabbed this piece. Keep scrolling. New drops land weekly.",
     PIECE_BEING_CHECKED_OUT: "Someone is already checking this piece out. Try again shortly.",
     CANNOT_BUY_OWN: "You can't buy your own piece.",
     AUTH_REQUIRED: "Please sign in again, then retry the checkout.",

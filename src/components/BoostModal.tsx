@@ -54,7 +54,7 @@ export default function BoostModal({
     const handleRow = (row: Record<string, unknown>) => {
       if (row.status === "paid") {
         setPhase("success");
-        showToast("Piece boosted — it's pinned to the top of the feed ⚡");
+        showToast("Piece boosted. It's pinned to the top of the feed ⚡");
       } else if (row.status === "failed") {
         setPhase("error");
         setMessage("The payment failed or was cancelled. You can try again.");
@@ -213,7 +213,7 @@ export default function BoostModal({
                 </p>
                 {alreadyBoosted && listing.boostExpiresAt ? (
                   <p className="mt-0.5 text-xs font-semibold text-ink">
-                    Boosted until {formatDate(listing.boostExpiresAt)} — this payment extends it by{" "}
+                    Boosted until {formatDate(listing.boostExpiresAt)}. This payment extends it by{" "}
                     {BOOST_DURATION_DAYS} more days.
                   </p>
                 ) : (

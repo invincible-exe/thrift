@@ -318,7 +318,7 @@ export default function ProductFeed() {
               </SplitReveal>
               <p className="mt-1 text-sm text-ink-soft">
                 {buyerLoc.area
-                  ? `${nearby.length} piece${nearby.length === 1 ? "" : "s"} meeting in ${buyerLoc.city} — your area (${buyerLoc.area}) first.`
+                  ? `${nearby.length} piece${nearby.length === 1 ? "" : "s"} meeting in ${buyerLoc.city}. Your area (${buyerLoc.area}) first.`
                   : `${nearby.length} piece${nearby.length === 1 ? "" : "s"} meeting in ${buyerLoc.city}.`}
               </p>
             </div>
@@ -421,8 +421,8 @@ export default function ProductFeed() {
                   >
                     {nearMe
                       ? buyerLoc?.area
-                        ? `✓ Near me — ${buyerLoc.city} (${buyerLoc.area} first)`
-                        : `✓ Near me — ${buyerLoc?.city ?? "your county"}`
+                        ? `✓ Near me: ${buyerLoc.city} (${buyerLoc.area} first)`
+                        : `✓ Near me: ${buyerLoc?.city ?? "your county"}`
                       : "📍 Near me"}
                   </button>
                   {nearMe && !buyerLoc && (
@@ -431,7 +431,7 @@ export default function ProductFeed() {
                       <Link href="/account" className="font-bold text-accent underline-offset-2 hover:underline">
                         My Account
                       </Link>{" "}
-                      to see pieces near you — same-county drops first, your area at the top.
+                      to see pieces near you. Same-county drops first, your area at the top.
                     </p>
                   )}
                   <p className="mt-2 text-xs text-ink-soft">
@@ -507,8 +507,8 @@ export default function ProductFeed() {
               }`}
             >
               {nearMe
-                ? `✓ Near me — ${buyerLoc.city}${buyerLoc.area ? ` (${buyerLoc.area} first)` : ""}`
-                : `📍 Near me — ${buyerLoc.city}`}
+                ? `✓ Near me: ${buyerLoc.city}${buyerLoc.area ? ` (${buyerLoc.area} first)` : ""}`
+                : `📍 Near me: ${buyerLoc.city}`}
             </button>
           )}
           {nearMe && buyerLoc && (
@@ -584,7 +584,7 @@ export default function ProductFeed() {
             ) : nearMe && buyerLoc && filterCount === 1 ? (
               <p>
                 No pieces meeting in <span className="font-bold text-ink">{buyerLoc.city}</span> right now.
-                See all drops instead — new ones land all the time.
+                See all drops instead. New ones land all the time.
               </p>
             ) : query || filterCount > 0 ? (
               "No pieces match your search or filters. Try widening them."

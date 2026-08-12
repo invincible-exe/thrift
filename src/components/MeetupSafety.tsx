@@ -34,13 +34,13 @@ function friendlyGeoError(e: unknown): string {
     typeof GeolocationPositionError !== "undefined" && e instanceof GeolocationPositionError;
   if (posErr) {
     if (e.code === e.PERMISSION_DENIED) {
-      return "Location permission denied — allow it in your browser to share.";
+      return "Location permission denied. Allow it in your browser to share.";
     }
     if (e.code === e.TIMEOUT) {
-      return "Couldn't get your location — check your GPS and try again.";
+      return "Couldn't get your location. Check your GPS and try again.";
     }
     if (e.code === e.POSITION_UNAVAILABLE) {
-      return "Your location isn't available right now — try again.";
+      return "Your location isn't available right now. Try again.";
     }
   }
   // Anything else (RPC failures like NOT_A_PARTICIPANT, network errors, …)
@@ -276,7 +276,7 @@ export default function MeetupSafety({
         {theirShare && (
           <span className="text-[11px] font-semibold text-accent">
             {distance !== null
-              ? `🤝 ${otherLabel} is sharing — ${formatDistance(distance)} away`
+              ? `🤝 ${otherLabel} is sharing: ${formatDistance(distance)} away`
               : `🤝 ${otherLabel} is sharing until ${formatDate(theirShare.expiresAt)}`}
           </span>
         )}

@@ -85,7 +85,7 @@ export default function ProductGalleryModal({
           <Image
             key={photos[index]}
             src={photos[index]}
-            alt={`${product.title} — photo ${index + 1}`}
+            alt={`${product.title}, photo ${index + 1}`}
             fill
             sizes="(min-width: 768px) 48rem, 100vw"
             quality={95}

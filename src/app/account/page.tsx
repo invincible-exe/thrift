@@ -89,7 +89,7 @@ function SignedIn() {
     if (!uid) return;
     try {
       await updateProfileLocation(uid, loc?.id ?? null);
-      showToast(loc ? "Area saved — nearby pieces will surface." : "Area cleared.");
+      showToast(loc ? "Area saved. Nearby pieces will surface." : "Area cleared.");
     } catch {
       showToast("Couldn't save your area. Try again.");
     }
@@ -116,7 +116,7 @@ function SignedIn() {
         text:
           released > 0
             ? "Thanks! The seller's payout has been released. ✓"
-            : "Thanks for confirming — nothing was held on this order.",
+            : "Thanks for confirming. Nothing was held on this order.",
       });
     } catch (e) {
       setConfirmMsg({
@@ -161,7 +161,7 @@ function SignedIn() {
             <p className="text-sm text-ink-soft">{user?.email}</p>
             <div className="mt-3 max-w-md">
               <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-ink-soft">
-                Payout details — where your earnings land
+                Payout details: where your earnings land
               </p>
               <PayoutDetails
                 uid={uid}
@@ -172,7 +172,7 @@ function SignedIn() {
             </div>
             <div className="mt-3 max-w-sm">
               <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-ink-soft">
-                Your area — see pieces near you
+                Your area: see pieces near you
               </p>
               <LocationPicker value={profileLocationId} onChange={saveArea} />
             </div>
@@ -247,7 +247,7 @@ function SignedIn() {
           <div className="rounded-2xl border border-dashed border-line bg-paper p-10 text-center">
             <p className="text-4xl">🧥</p>
             <p className="mx-auto mt-3 max-w-xs text-sm text-ink-soft">
-              Your closet is empty. Add your first piece — it shows up here, then hits the feed
+              Your closet is empty. Add your first piece. It shows up here, then hits the feed
               once approved.
             </p>
             <button
@@ -473,7 +473,7 @@ function PayoutRow({
       await reportPayoutMissing(p.id, reason.trim() || undefined);
       setReporting(false);
       setReason("");
-      showToast("Report filed — the team is on it.");
+      showToast("Report filed. The team is on it.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't file the report. Try again.");
     } finally {
@@ -532,13 +532,13 @@ function PayoutRow({
         <div className="mt-3 border-t border-line pt-3">
           {report?.status === "open" && (
             <p className="rounded-xl bg-accent-soft px-3 py-2 text-xs font-semibold text-accent">
-              ⏳ Reported — we&apos;re looking into this payout.
+              ⏳ Reported. We&apos;re looking into this payout.
             </p>
           )}
           {report?.status === "resolved" && (
             <p className="rounded-xl bg-lime/20 px-3 py-2 text-xs font-semibold text-ink">
               ✓ Report resolved
-              {report.adminNote ? ` — ${report.adminNote}` : report.reason ? ` — ${report.reason}` : ""}.
+              {report.adminNote ? `: ${report.adminNote}` : report.reason ? `: ${report.reason}` : ""}.
             </p>
           )}
           {!report && !reporting && (
@@ -748,7 +748,7 @@ function OrderCard({
       await disputeOrder(order.id, disputeReason.trim() || undefined);
       setDisputeOpen(false);
       setDisputeReason("");
-      showToast("Dispute filed — the team will review it.");
+      showToast("Dispute filed. The team will review it.");
     } catch (e) {
       setDisputeMsg(e instanceof Error ? e.message : "Couldn't file the dispute.");
     } finally {
@@ -763,7 +763,7 @@ function OrderCard({
     try {
       await cancelOrderNoShow(order.id);
       setCancelArm(false);
-      showToast("Order cancelled — your refund is on the way.");
+      showToast("Order cancelled. Your refund is on the way.");
     } catch (e) {
       setCancelMsg(e instanceof Error ? e.message : "Couldn't cancel the order.");
       setCancelArm(false);
@@ -873,7 +873,7 @@ function OrderCard({
                     ? "Cancelling…"
                     : cancelArm
                       ? "Confirm cancel & refund"
-                      : "Seller didn't show — cancel"}
+                      : "Seller didn't show. Cancel"}
                 </button>
               )}
             </div>
@@ -884,7 +884,7 @@ function OrderCard({
           {!order.cancelledAt && !order.disputedAt && (held || order.receiptConfirmedAt) && (
             <div className="border-t border-line pt-3">
               {ratedAlready === true ? (
-                <p className="text-xs font-semibold text-ink-soft">⭐ Rated — thanks for the feedback!</p>
+                <p className="text-xs font-semibold text-ink-soft">⭐ Rated. Thanks for the feedback!</p>
               ) : rateOpen ? (
                 <FeedbackRating
                   orderId={order.id}

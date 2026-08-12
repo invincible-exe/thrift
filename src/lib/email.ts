@@ -61,8 +61,8 @@ export async function sendListingDecisionEmail(input: ListingDecisionEmail): Pro
 
   const approved = input.status === "approved";
   const subject = approved
-    ? `${APP_NAME} — "${input.itemTitle}" is live 🎉`
-    : `${APP_NAME} — "${input.itemTitle}" wasn't approved`;
+    ? `${APP_NAME}: "${input.itemTitle}" is live 🎉`
+    : `${APP_NAME}: "${input.itemTitle}" wasn't approved`;
 
   // The admin's reason, shown as a callout on rejections.
   const noteBlock =
@@ -94,7 +94,7 @@ export async function sendListingDecisionEmail(input: ListingDecisionEmail): Pro
             approved
               ? `Your listing <strong>"${escapeHtml(input.itemTitle)}"</strong> was approved and is now live on the feed, waiting for a buyer.`
               : input.note
-                ? `Your listing <strong>"${escapeHtml(input.itemTitle)}"</strong> was not approved. Fix the point below and re-list it — no hard feelings.`
+                ? `Your listing <strong>"${escapeHtml(input.itemTitle)}"</strong> was not approved. Fix the point below and re-list it. No hard feelings.`
                 : `Your listing <strong>"${escapeHtml(input.itemTitle)}"</strong> was not approved. You can re-list it with fresh photos and a clear description.`
           }
         </p>
@@ -111,8 +111,8 @@ export async function sendListingDecisionEmail(input: ListingDecisionEmail): Pro
         You're receiving this because you listed a piece on ${APP_NAME}.
         <br />
         Questions? Email us at{" "}
-        <a href="mailto:${SUPPORT_EMAIL}" style="color: #b45309; text-decoration: underline;">${SUPPORT_EMAIL}</a>
-        — we reply within 24h.
+        <a href="mailto:${SUPPORT_EMAIL}" style="color: #b45309; text-decoration: underline;">${SUPPORT_EMAIL}</a>.
+        We reply within 24h.
       </p>
     </div>
   `;

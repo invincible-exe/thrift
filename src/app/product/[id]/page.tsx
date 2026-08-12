@@ -62,7 +62,7 @@ export async function generateMetadata({
   const title = `${product.title} · ${formatKes(product.priceKes)} | 10/10 Thrifts`;
   const description =
     product.description?.slice(0, 155) ??
-    `1-of-1 ${product.category.toLowerCase()} piece — ${product.brand}, size ${product.size}, ${product.condition}. No doubles, ever.`;
+    `1-of-1 ${product.category.toLowerCase()} piece: ${product.brand}, size ${product.size}, ${product.condition}. No doubles, ever.`;
   const url = siteUrl(`/product/${product.id}`);
 
   return {
@@ -101,7 +101,7 @@ export default async function ProductPage({
     "@type": "Product",
     name: product.title,
     image: product.imageUrls ?? [product.imageUrl],
-    description: product.description ?? `${product.brand} ${product.title} — 1-of-1 thrift piece.`,
+    description: product.description ?? `${product.brand} ${product.title}: a 1-of-1 thrift piece.`,
     brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
     category: product.category,
     offers: {

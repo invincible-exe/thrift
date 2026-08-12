@@ -407,7 +407,7 @@ function Dashboard() {
                       className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-ink-soft"
                     >
                       Why not?{" "}
-                      <span className="normal-case">(shown to the seller — helps them fix it)</span>
+                      <span className="normal-case">(shown to the seller so they can fix it)</span>
                     </label>
                     <textarea
                       id={`reject-note-${p.id}`}
@@ -416,14 +416,14 @@ function Dashboard() {
                       maxLength={300}
                       rows={3}
                       autoFocus
-                      placeholder="e.g. Photos too blurry — retake in daylight against a plain background"
+                      placeholder="e.g. Photos too blurry. Retake in daylight against a plain background"
                       className="w-full resize-none rounded-xl border border-line bg-cream px-3 py-2 text-sm outline-none transition focus:border-accent"
                     />
                     <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                       <p className="text-[11px] text-ink-soft">
                         {rejectNote.trim()
                           ? `${rejectNote.trim().length}/300`
-                          : "Optional — you can reject without a note."}
+                          : "Optional. You can reject without a note."}
                       </p>
                       <div className="flex gap-2">
                         <button
@@ -502,7 +502,7 @@ function Dashboard() {
                       pieces)
                     </span>
                   ))}{" "}
-                  — these counties have buyers but no drops meeting there yet.
+                  These counties have buyers but no drops meeting there yet.
                 </p>
               </div>
             )}
@@ -529,9 +529,9 @@ function Dashboard() {
                         <td className="px-4 py-2.5 text-ink-soft">{r.area}</td>
                         <td className="px-4 py-2.5 text-right font-semibold">{r.buyers}</td>
                         <td className={`px-4 py-2.5 text-right font-semibold ${r.pieces === 0 ? "text-accent" : ""}`}>
-                          {r.pieces === 0 ? "—" : r.pieces}
+                          {r.pieces === 0 ? "0" : r.pieces}
                         </td>
-                        <td className="px-4 py-2.5 text-right text-ink-soft">{r.sellers || "—"}</td>
+                        <td className="px-4 py-2.5 text-right text-ink-soft">{r.sellers || "0"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -539,7 +539,7 @@ function Dashboard() {
               </div>
             ) : (
               <p className="rounded-2xl border border-dashed border-line bg-paper p-6 text-center text-sm text-ink-soft">
-                No location activity yet — set an area on your profile and seed a few pieces to get
+                No location activity yet. Set an area on your profile and seed a few pieces to get
                 the map going.
               </p>
             )}
@@ -770,7 +770,7 @@ function Dashboard() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold">
                         {linked ? linked.productSnapshot.title : "Order"} ·{" "}
-                        {linked ? formatKes(linked.amountKes) : "—"} · {formatDate(d.createdAt)}
+                        {linked ? formatKes(linked.amountKes) : "N/A"} · {formatDate(d.createdAt)}
                       </p>
                       {d.reason && <p className="mt-0.5 text-xs text-ink-soft">Buyer says: {d.reason}</p>}
                       {!open && d.adminNote && (
@@ -795,7 +795,7 @@ function Dashboard() {
                         disabled={disputeBusyId === d.id}
                         className="rounded-full bg-lime px-4 py-1.5 text-xs font-bold text-ink transition hover:brightness-95 disabled:opacity-50"
                       >
-                        Seller delivered — release
+                        Seller delivered. Release
                       </button>
                       <button
                         onClick={() => handleResolveDispute(d.id, "cancel", "Buyer never received it")}
@@ -1045,7 +1045,7 @@ function AddPieceForm() {
       return;
     }
     if (!meetup) {
-      setMessage("Pick a meetup location — platform pieces need one so buyers know where to find them.");
+      setMessage("Pick a meetup location. Platform pieces need one so buyers know where to find them.");
       return;
     }
     setBusy(true);
@@ -1179,7 +1179,7 @@ function AddPieceForm() {
               </p>
             ) : (
               <p className="mt-1.5 text-xs text-ink-soft">
-                Required — buyers see this as the area you meet in when the piece sells. You can
+                Required. Buyers see this as the area you meet in when the piece sells. You can
                 agree on the exact spot in the order chat.
               </p>
             )}

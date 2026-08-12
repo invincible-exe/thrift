@@ -154,7 +154,7 @@ export default function AuthModal() {
             <div className="mt-6 flex flex-col items-center gap-3">
               {resent ? (
                 <p className="rounded-full bg-lime/20 px-4 py-2 text-sm font-bold text-ink">
-                  Sent again — check your inbox
+                  Sent again. Check your inbox
                 </p>
               ) : (
                 <button

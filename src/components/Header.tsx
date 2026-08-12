@@ -224,7 +224,7 @@ export default function Header() {
                     </ul>
                   ) : notifications !== null ? (
                     <p className="px-3 py-6 text-center text-sm text-ink-soft">
-                      Nothing yet. We&apos;ll ping you when a piece you listed is approved or rejected —
+                      Nothing yet. We&apos;ll ping you when a piece you listed is approved or rejected,
                       and when fresh drops land.
                     </p>
                   ) : null}

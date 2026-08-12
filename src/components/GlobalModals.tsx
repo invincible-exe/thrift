@@ -22,7 +22,7 @@ export default function GlobalModals() {
       setTimeout(() => {
         showToast(
           paid === "1"
-            ? "Payment received — the piece is yours 🎉"
+            ? "Payment received. The piece is yours 🎉"
             : "The payment didn't go through. No charge was made."
         );
         window.history.replaceState(null, "", window.location.pathname);

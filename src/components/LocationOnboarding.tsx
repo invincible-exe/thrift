@@ -72,7 +72,7 @@ export default function LocationOnboarding() {
       await updateProfileLocation(uid, loc.id);
       setSaved(true);
       closeLocationPrompt();
-      showToast(`Done — pieces near ${loc.city} will surface first.`);
+      showToast(`Done. Pieces near ${loc.city} will surface first.`);
       // If the feed is visible underneath, glide down to the new
       // "Near you — {county}" section once it renders.
       setTimeout(() => {
@@ -97,8 +97,8 @@ export default function LocationOnboarding() {
               Where do you live?
             </h3>
             <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-              Tell us your area and we&apos;ll surface pieces meeting near you —
-              same county first, your exact area at the top of the rack.
+              Tell us your area and we&apos;ll surface pieces meeting near you.
+              Same county first, your exact area at the top of the rack.
             </p>
           </div>
         </div>

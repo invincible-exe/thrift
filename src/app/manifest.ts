@@ -8,7 +8,7 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "10/10 Thrifts — Premium Curated Thrift",
+    name: "10/10 Thrifts · Premium Curated Thrift",
     short_name: "10/10 Thrifts",
     description:
       "1-of-1 premium pieces, no doubles ever. Browse free, pay with M-Pesa or bank transfer.",

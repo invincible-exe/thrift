@@ -12,7 +12,7 @@ export default function NotFound() {
         This drop is gone
       </h1>
       <p className="mt-3 max-w-sm text-sm leading-relaxed text-ink-soft">
-        1-of-1 pieces sell fast — the piece behind this link was already
+        1-of-1 pieces sell fast. The piece behind this link was already
         claimed. Fresh drops land weekly, and they go just as quickly.
       </p>
       <Link

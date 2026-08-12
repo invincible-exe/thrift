@@ -58,7 +58,7 @@ export default function OrderChat({
   return (
     <div className="rounded-2xl border border-line bg-sand/40 p-3">
       <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-ink-soft">
-        Meetup chat — agree on a public spot and a time
+        Meetup chat: agree on a public spot and a time
       </p>
       <div ref={scrollRef} className="max-h-64 space-y-2 overflow-y-auto pr-1">
         {messages !== null && ordered.length === 0 && (
