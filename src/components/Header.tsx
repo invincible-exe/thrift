@@ -173,7 +173,7 @@ export default function Header() {
                 )}
               </button>
               {notifOpen && (
-                <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-paper p-2 shadow-xl">
+                <div className="absolute left-1/2 top-12 w-80 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-2xl border border-line bg-paper p-2 shadow-xl sm:left-auto sm:right-0 sm:translate-x-0">
                   <p className="px-3 pb-1 pt-2 text-xs font-bold uppercase tracking-widest text-ink-soft">
                     Notifications
                   </p>
