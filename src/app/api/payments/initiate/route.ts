@@ -56,7 +56,7 @@ export async function POST(req: Request) {
 
   // Every hit can trigger a charge — keep a tight per-user cap so an
   // attacker can't burn through pushes (or cost you money) on a loop.
-  const rl = rateLimit(`checkout:${user.id}`, 10, WINDOWS.hour);
+  const rl = await rateLimit(`checkout:${user.id}`, 10, WINDOWS.hour);
   if (!rl.ok) {
     return NextResponse.json(
       {

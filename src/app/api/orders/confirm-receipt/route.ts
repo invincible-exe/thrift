@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   // Tight cap: confirming receipt is rare and releases money — an attacker
   // looping it just re-triggers payouts that are already pending (no-ops),
   // but the limit keeps things sane anyway.
-  const rl = rateLimit(`confirm:${user.id}`, 20, WINDOWS.hour);
+  const rl = await rateLimit(`confirm:${user.id}`, 20, WINDOWS.hour);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "RATE_LIMITED", message: "Too many requests. Try again shortly." },

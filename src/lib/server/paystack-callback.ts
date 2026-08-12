@@ -91,7 +91,30 @@ export async function handlePaystackWebhook(req: Request): Promise<Response> {
     }
     const admin = getAdminClient();
     try {
+      // The payout must exist, and a success must carry the exact ledger
+      // amount (Paystack reports subunits — /100 to KES). Even with a
+      // leaked secret key, a forged callback can't flip a payout paid for
+      // the wrong amount.
+      const { data: payout } = await admin
+        .from("payouts")
+        .select("amount_kes")
+        .eq("provider_ref", code)
+        .maybeSingle();
+      if (!payout) {
+        console.error("Paystack transfer webhook: no payout for transfer_code", code);
+        return NextResponse.json({ received: true });
+      }
+
       if (body.event === "transfer.success") {
+        const reportedKes = Math.round(Number(data.amount ?? 0) / 100);
+        if (!Number.isFinite(reportedKes) || reportedKes !== Number(payout.amount_kes ?? 0)) {
+          console.error("Paystack transfer webhook amount mismatch — not marking paid:", {
+            code,
+            reportedKes,
+            ledgerKes: payout.amount_kes,
+          });
+          return NextResponse.json({ received: true });
+        }
         await admin
           .from("payouts")
           .update({ status: "paid", paid_at: new Date().toISOString(), failure_reason: null })

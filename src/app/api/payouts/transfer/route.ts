@@ -52,7 +52,7 @@ export async function POST(req: Request) {
 
   // Admin-only endpoint, but cap it anyway so a compromised admin session
   // can't fire an unlimited number of transfers.
-  const rl = rateLimit(`transfer:${user.id}`, 20, WINDOWS.hour);
+  const rl = await rateLimit(`transfer:${user.id}`, 20, WINDOWS.hour);
   if (!rl.ok) {
     return NextResponse.json(
       {

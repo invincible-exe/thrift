@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "AUTH_REQUIRED" }, { status: 401 });
 
-  const rl = rateLimit(`payout-reconcile:${user.id}`, 60, WINDOWS.hour);
+  const rl = await rateLimit(`payout-reconcile:${user.id}`, 60, WINDOWS.hour);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "RATE_LIMITED", message: "Too many requests. Try again shortly." },

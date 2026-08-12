@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "AUTH_REQUIRED" }, { status: 401 });
 
   // 30 uploads/hour/user — generous for real listings, stops storage abuse.
-  const rl = rateLimit(`upload:${user.id}`, 30, WINDOWS.hour);
+  const rl = await rateLimit(`upload:${user.id}`, 30, WINDOWS.hour);
   if (!rl.ok) {
     return NextResponse.json(
       {

@@ -6,6 +6,13 @@ import ScrollProgress from "@/components/ui/ScrollProgress";
 import FloatingContact from "@/components/ui/FloatingContact";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
+// Nonce-based CSP (set in middleware.ts) requires every page to render per
+// request — Next.js extracts the per-request nonce from the CSP header
+// during SSR and applies it to its inline hydration scripts, and static
+// pages are generated at build time with no request headers (they'd ship
+// nonce-less scripts and break the strict script-src).
+export const dynamic = "force-dynamic";
+
 const archivo = Archivo({
   subsets: ["latin"],
   variable: "--font-archivo",
@@ -65,6 +72,9 @@ export default function RootLayout({
             no-flash theme init needs — and hydrates in place.
             suppressHydrationWarning tells React to accept the class the
             script applies to <html> before it hydrates. */}
+        {/* NOTE: this script is allowlisted in the CSP by its SHA-256 hash
+            (see buildCsp in middleware.ts). If you change its content, you
+            MUST recompute the hash or the no-flash theme breaks. */}
         <script
           id="theme-init"
           suppressHydrationWarning

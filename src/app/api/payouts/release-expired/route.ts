@@ -32,7 +32,7 @@ export async function POST() {
 
   // Generous cap — this is called on page loads; the limit just stops a
   // bot looping payout sends (each send is atomic, but they cost money).
-  const rl = rateLimit(`escrow-sweep:${user.id}`, 30, WINDOWS.hour);
+  const rl = await rateLimit(`escrow-sweep:${user.id}`, 30, WINDOWS.hour);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "RATE_LIMITED", message: "Too many requests. Try again shortly." },

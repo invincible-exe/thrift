@@ -860,6 +860,18 @@ export interface Database {
           sales: number;
         }[];
       };
+      rate_limit_hit: {
+        Args: {
+          p_key: string;
+          p_limit: number;
+          p_window_ms: number;
+        };
+        Returns: {
+          ok: boolean;
+          remaining: number;
+          reset_at: string;
+        }[];
+      };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

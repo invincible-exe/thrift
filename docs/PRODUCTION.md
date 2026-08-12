@@ -55,6 +55,10 @@ Also review, once:
 - **RLS:** leave enabled. Purchases, order finalization and payouts are all
   service-role-only server RPCs; the browser can never mark an order paid
   (see `docs/PAYMENTS.md`).
+- **Migrations:** run `supabase db push` (or paste) so `0019_rate_limit.sql`
+  and `0020_security_fixes.sql` apply — the rate limiter depends on the
+  former (distributed Postgres-backed limits), and the latter closes the
+  admin role-escalation + double-payout race found in the security audit.
 - **Storage:** the photo upload buckets must allow `authenticated` writes but
   only `public` reads for product images (already configured).
 
@@ -107,13 +111,25 @@ Also review, once:
 
 ## 7 · Ops notes (read once)
 
-- **Rate limiting is in-memory.** On Vercel (many lambdas) it's a per-instance
-  soft limit — still stops a single client hammering, but not a distributed
-  burst. For hard limits, swap `src/lib/rate-limit.ts` for a shared store
-  (Upstash/Redis) or the platform's rate limiter.
+- **Rate limiting is distributed** — shared Postgres-backed counters
+  (`src/lib/rate-limit.ts` → `rate_limit_hit` RPC, table in migration
+  `0019_rate_limit.sql`). Exact across every serverless instance; falls back
+  to per-instance in-memory only when the service-role keys are unset or the
+  migration hasn't been applied. No extra service or env vars needed.
 - **The service-role key is the crown jewels.** It's only referenced from
   server modules (`src/lib/supabase/admin.ts`) and API routes. Never move it
   into a `"use client"` file or a `NEXT_PUBLIC_*` var.
+- **Security tooling:**
+  - `npm run verify:security` (or the combined `npm run verify`) — runs
+    `scripts/verify-security-fixes.ts` against the LIVE database: proves the
+    rate limiter, the admin-escalation block, the no-double-payout fix, and
+    failed-order hygiene; creates temp rows and cleans up. Wired into CI via
+    `.github/workflows/security.yml` (add `SUPABASE_URL`,
+    `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` as repo secrets).
+  - `npx tsx scripts/simulate-transfer-webhook.ts <base-url>` — sends
+    HMAC-signed Paystack transfer webhooks to a running instance to prove
+    the amount-verification (correct → paid, wrong/missing amount → held,
+    forged signature → 401).
 - **Model pipeline:** `scripts/compress-model.ts` rebuilds
   `public/models/modelToUse.glb` (~7MB, position-welded to ~500K verts +
   meshopt) and `modelToUse-mobile.glb` (3.6MB, decimated for phones);
@@ -130,20 +146,23 @@ Also review, once:
 ## 8 · Post-deploy verification (run all)
 
 1. `https://your-domain.com` loads, hero renders, no console errors.
-2. Phone (real device, mobile data): hero loads the **2.2MB** variant (DevTools
+2. DevTools → Network → any document response shows a `Content-Security-Policy`
+   header whose `script-src` contains `'nonce-…'` and **no** `'unsafe-inline'`;
+   the page still runs (no CSP violations in the console).
+3. Phone (real device, mobile data): hero loads the **2.2MB** variant (DevTools
    → Network; or append `?model=mobile` / `?model=full` to compare). Confirm
    it renders within a few seconds on 4G.
-3. Desktop on a fast connection: hero loads the **31.6MB** variant and is
+4. Desktop on a fast connection: hero loads the **31.6MB** variant and is
    smooth when dragging.
-4. Sign in with email+password → confirmation link in the inbox points at
+5. Sign in with email+password → confirmation link in the inbox points at
    `https://your-domain.com/...` and opens on the phone.
-5. Google sign-in lands back on the app (redirect allowlist).
-6. **Checkout:** pay with M-Pesa (STK prompt) and with a card (Paystack
+6. Google sign-in lands back on the app (redirect allowlist).
+7. **Checkout:** pay with M-Pesa (STK prompt) and with a card (Paystack
    checkout) → order completes, the listing disappears. Check the webhook
    arrived (server logs).
-7. **Payout:** as admin, settle a seller payout to their M-Pesa number and
+8. **Payout:** as admin, settle a seller payout to their M-Pesa number and
    one to a bank account (entering the OTP if Paystack requires it) →
    money arrives → payout flips to `paid` in `/admin`.
-8. Admin dashboard loads; photo upload works (storage bucket rules).
-9. Grafana/dev-only ports are irrelevant in production — nothing listens on
-   3000/3001 there.
+9. Admin dashboard loads; photo upload works (storage bucket rules).
+10. Grafana/dev-only ports are irrelevant in production — nothing listens on
+    3000/3001 there.

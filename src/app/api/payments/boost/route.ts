@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "AUTH_REQUIRED" }, { status: 401 });
   }
 
-  const rl = rateLimit(`boost:${user.id}`, 10, WINDOWS.hour);
+  const rl = await rateLimit(`boost:${user.id}`, 10, WINDOWS.hour);
   if (!rl.ok) {
     return NextResponse.json(
       {

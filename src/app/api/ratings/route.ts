@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   // Availability + integrity cap: one buyer can't meaningfully rate more
   // than a handful of orders, so a tight per-user window stops a bot from
   // inflating (or tanking) the shop's rating stats.
-  const rl = rateLimit(`ratings:${user.id}`, 60, WINDOWS.hour);
+  const rl = await rateLimit(`ratings:${user.id}`, 60, WINDOWS.hour);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "RATE_LIMITED", message: "Too many rating submissions. Try again shortly." },

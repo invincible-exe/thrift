@@ -1,0 +1,59 @@
+name: Security checks
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    name: Typecheck + lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+
+  # Live-database security verification (scripts/verify-security-fixes.ts).
+  #
+  # CAUTION: this job runs against your REAL Supabase project (the same DB
+  # the app uses). The script creates temp rows + one temp auth user, proves
+  # each security fix (rate limiter, admin-escalation block, no double-payout,
+  # failed-order hygiene), and deletes everything it created.
+  #
+  # It runs only when the Supabase secrets are configured on the repo — add
+  # them under Settings → Secrets and variables → Actions:
+  #   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+  security-db:
+    name: Live DB security verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Plain shell guard: GitHub doesn't expose secrets in `if` conditionals
+      # (and they're empty on fork PRs anyway), so skip via the env var.
+      - name: Live-DB security verify
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "Supabase secrets not configured — skipping live-DB verify"
+            exit 0
+          fi
+          npm run verify:security

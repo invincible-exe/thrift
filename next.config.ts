@@ -28,41 +28,19 @@ const nextConfig: NextConfig = {
   },
   // Security headers — the edge-level half of the CIA triad + zero trust.
   // Sent on every response (pages, API routes, static assets):
-  //  - CSP: baseline injection defense (blocks external script/object/iframe
-  //    loading, form exfiltration, clickjacking). 'unsafe-inline' is required
-  //    for Next's inline hydration bootstrap + the theme-init script; the
-  //    larger win is that script-src has NO remote sources, so an injected
-  //    <script src="https://evil…"> payload cannot load. Dev additionally
-  //    needs 'unsafe-eval' for the webpack/HMR dev runtime — production
-  //    ships without it. 'wasm-unsafe-eval' (CSP3, scoped to WebAssembly
-  //    compilation only — NOT JS eval) keeps the 3D mascot's meshopt/draco
-  //    decoders working in production.
+  //  - CSP lives in middleware.ts now (nonce-based, per-request) — keeping it
+  //    here too would ship a second, static CSP header that conflicts with
+  //    the nonce. Static assets excluded from the middleware matcher don't
+  //    need a CSP; only HTML documents do.
   //  - HSTS: force HTTPS (browsers ignore it on plain http/localhost).
   //  - nosniff / DENY frame / strict referrer / empty Permissions-Policy:
   //    prevent content-type sniffing, framing, referrer leakage, and
   //    camera/mic/geo/payment API abuse.
   async headers() {
-    const isDev = process.env.NODE_ENV !== "production";
-    const csp = [
-      "default-src 'self'",
-      `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ""}`,
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https:",
-      "font-src 'self' data:",
-      // Browser → Supabase (REST + realtime WebSocket) and Daraja (server-side
-      // calls are unaffected by CSP; these entries only matter if the browser
-      // ever calls them directly).
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.safaricom.co.ke https://sandbox.safaricom.co.ke",
-      "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "object-src 'none'",
-    ].join("; ");
     return [
       {
         source: "/:path*",
         headers: [
-          { key: "Content-Security-Policy", value: csp },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },

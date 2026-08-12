@@ -31,6 +31,8 @@ each control lists where it lives in the codebase.
 | Atomicity / no double-pay: `for update` product lock, `pending → processing` claims, status-constrained updates | `purchase_product`, `sendPayout` (`src/lib/server/payouts.ts`) |
 | Ledger rows are append-only via SECURITY DEFINER RPCs — clients have **no** insert/update on orders/payouts | `revoke all … grant execute …` blocks in migrations |
 | Role self-escalation blocked by trigger (`prevent_role_self_change`) — users can't set their own `role='admin'` | `0001_init.sql` |
+| Admin role-escalation on INSERT closed: `profiles_insert_own` requires `role = 'user'` + a `prevent_role_self_insert` trigger (policy drift can't reopen it) | `0020_security_fixes.sql` |
+| Ratings RLS verifies the rated order belongs to the caller (no fabricated ratings via a raw client) | `0020_security_fixes.sql` |
 | Uploads re-encoded server-side (sharp → WebP, ≤1600px) — no client-controlled bytes land in the bucket | `src/app/api/storage/upload/route.ts` |
 | Storage direct-upload RLS policy removed — uploads only via the validating server route (least privilege) | `supabase/migrations/0006_security_hardening.sql` |
 | Auth callback `next` param validated — no open redirect | `src/app/auth/callback/route.ts` |
@@ -41,9 +43,9 @@ each control lists where it lives in the codebase.
 
 | Control | Where |
 |---|---|
-| Per-user rate limits on every cost-bearing endpoint (payment initiations, uploads, payouts, escrow sweep, confirm-receipt, notification emails, ratings) | `src/lib/rate-limit.ts`, applied in each route |
-| Webhooks always answer 200 quickly and are idempotent — Paystack re-delivery can't corrupt state (reference-keyed finalize functions are status-constrained) | callback routes |
-| Fail-closed with graceful degradation: missing email keys no-op instead of failing sales; escrow auto-releases after 24h; payouts claim rows atomically so concurrent sweeps can't double-pay | `src/lib/email.ts`, `0005_escrow.sql`, `sendPayout` |
+| Per-user rate limits on every cost-bearing endpoint (payment initiations, uploads, payouts, escrow sweep, confirm-receipt, notification emails, ratings), **distributed** via shared Postgres counters (`rate_limit_hit` RPC — exact across serverless instances) with an in-memory fallback for preview | `src/lib/rate-limit.ts`, `0019_rate_limit.sql`, applied in each route |
+| Webhooks always answer 200 quickly and are idempotent — Paystack re-delivery can't corrupt state (reference-keyed finalize functions are status-constrained and lock the order row with `for update`, so concurrent retries can't double-pay) | callback routes, `0020_security_fixes.sql` |
+| Fail-closed with graceful degradation: missing email keys no-op instead of failing sales; escrow auto-releases after 48h; payouts claim rows atomically so concurrent sweeps can't double-pay | `src/lib/email.ts`, `0005_escrow.sql`, `sendPayout` |
 | Stale pending orders are failed before a re-checkout, so a dropped STK push can't wedge a 1-of-1 | `src/app/api/payments/mpesa/route.ts` |
 | `ErrorBoundary`, toast/skeleton states, and `once: true` scroll triggers keep UI resilient | `src/components/ui/ErrorBoundary.tsx` et al. |
 
@@ -64,7 +66,7 @@ each control lists where it lives in the codebase.
    - Fail-closed webhooks (a forged callback can't finalize, can't mark paid, can't overwrite paid rows).
    - Money moves in small, idempotent, atomic steps (escrow → release → claim → paid) with a full orders/payouts ledger to reconcile against.
    - Security-relevant anomalies (amount mismatches, unconfirmed callbacks, missing metadata) are logged with context.
-   - Defense in depth: RLS + SECURITY DEFINER + route checks + rate limits + headers.
+   - Defense in depth: RLS + SECURITY DEFINER + route checks + rate limits (distributed) + headers + locks (`for update` on money-moving rows) + hash/nonce CSP.
 
 ---
 
@@ -73,7 +75,7 @@ each control lists where it lives in the codebase.
 | Gap | Why it remains | Mitigation today | Recommended |
 |---|---|---|---|
 | Transfer webhook depends on Paystack's HMAC signature | A leaked `PAYSTACK_SECRET_KEY` would let an attacker forge `transfer.success` | Signature checked timing-safe against the secret, and the amount + `provider_ref` must match a `pending` row; status-constrained updates prevent double-pay | Rotate the key if ever suspected; monitor transfer webhooks in the Paystack dashboard |
-| Rate limiter is in-memory (`src/lib/rate-limit.ts`) | Single-instance deploys get exact limits; multi-instance serverless gets per-instance soft limits | Per-user keys kill the common single-client abuse case | For hard distributed limits, swap in a shared store (Upstash/Redis) or the platform's rate limiter |
-| CSP uses `'unsafe-inline'` for scripts | Next.js App Router injects inline bootstrap scripts; a nonce/hash pipeline isn't set up | `script-src` still allows **no remote origins** — injected `<script src="https://evil">` payloads can't load; other directives (object/frame/form/base) are strict | Adopt Next.js nonce-based CSP for a strict `script-src` |
+| **Resolved** — rate limiter is now Postgres-backed and distributed (`rate_limit_hit`), so limits are exact across every serverless instance | Added a ~1–5ms DB round-trip per rate-limited request | In-memory fallback only when keys are unset or the migration isn't applied | Optional: move to a dedicated store (Upstash) if DB round-trips ever matter |
+| **Resolved** — CSP is now nonce + hash based (`script-src` has no `'unsafe-inline'`) | Nonces require per-request SSR, so all pages are dynamically rendered (no static/CDN page caching); style-src still uses `'unsafe-inline'` | Framework scripts get the per-request nonce automatically; the theme-init script is SHA-256-hash allowlisted | Optional: adopt Next.js experimental SRI to re-enable static pages, or a nonce-aware CDN |
 | `NEXT_PUBLIC_ADMIN_UID` is a client-visible hint | It's a UI convenience for showing the dashboard | Server routes and SQL functions always re-verify `profiles.role` | Prefer the DB role as the single source of truth; treat the env var as cosmetic |
 | Demo catalog images come from Unsplash via an allowlisted domain | Seed data lives outside the repo | `remotePatterns` allows only `images.unsplash.com` + `*.supabase.co` | Move demo images into Supabase Storage for a single trusted image origin |

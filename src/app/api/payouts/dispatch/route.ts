@@ -35,7 +35,7 @@ export async function POST() {
 
   // Each send costs money, so cap how often any one session can trigger a
   // full dispatch sweep (each individual send is atomic regardless).
-  const rl = rateLimit(`payout-dispatch:${user.id}`, 30, WINDOWS.hour);
+  const rl = await rateLimit(`payout-dispatch:${user.id}`, 30, WINDOWS.hour);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "RATE_LIMITED", message: "Too many requests. Try again shortly." },

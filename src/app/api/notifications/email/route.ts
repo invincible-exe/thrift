@@ -74,7 +74,7 @@ export async function POST(req: Request) {
   // Cap sends so a compromised admin session or leaked webhook secret can't
   // burn through the Resend quota. Webhook traffic is naturally low (one per
   // moderation action), so a per-window cap on the shared key is enough.
-  const rl = rateLimit(
+  const rl = await rateLimit(
     isWebhook ? "email-webhook" : `email-notify:${callerId}`,
     isWebhook ? 200 : 60,
     WINDOWS.hour
