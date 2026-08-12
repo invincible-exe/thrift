@@ -323,6 +323,44 @@ export default function Header() {
           )}
         </div>
       </div>
+
+      {/* Mobile nav row — the four primary links, always reachable on
+          phones (they were desktop-only before). Shrinks to a scrollable
+          strip on very narrow screens. */}
+      <nav
+        className="flex items-center justify-between gap-4 overflow-x-auto border-t border-line/70 px-4 py-2.5 sm:px-6 lg:hidden"
+        aria-label="Primary"
+      >
+        <a
+          href="#new-drops"
+          className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-ink-soft transition hover:text-ink"
+        >
+          New drops
+        </a>
+        <Link
+          href="/wishlist"
+          className="relative shrink-0 text-[11px] font-bold uppercase tracking-wider text-ink-soft transition hover:text-ink"
+        >
+          Saved
+          {savedCount > 0 && (
+            <span className="absolute -right-3.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-black text-white">
+              {savedCount}
+            </span>
+          )}
+        </Link>
+        <a
+          href="#drops"
+          className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-ink-soft transition hover:text-ink"
+        >
+          Available
+        </a>
+        <Link
+          href="/account#closet"
+          className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-ink-soft transition hover:text-ink"
+        >
+          My closet
+        </Link>
+      </nav>
     </header>
   );
 }

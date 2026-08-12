@@ -24,7 +24,7 @@ export default function Toast() {
             initial={{ opacity: 0, y: 16, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.97 }}
-            className="rounded-full border border-line bg-ink px-5 py-3 text-sm font-semibold text-cream shadow-xl"
+            className="max-w-full min-w-0 break-words rounded-full border border-line bg-ink px-5 py-3 text-center text-sm font-semibold text-cream shadow-xl"
           >
             {toast}
           </motion.div>
