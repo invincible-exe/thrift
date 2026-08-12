@@ -17,6 +17,7 @@ import {
   resolveOrderDisputeAdmin,
   resolvePayoutReportAdmin,
   setProductStatusAdmin,
+  setSellerVerifiedAdmin,
   uploadProductImage,
   useAllOrders,
   useAllProducts,
@@ -115,6 +116,8 @@ function Dashboard() {
   const [reportBusyId, setReportBusyId] = useState<string | null>(null);
   const [reportNote, setReportNote] = useState<Record<string, string>>({});
   const [reportMsg, setReportMsg] = useState("");
+  const [verifBusyId, setVerifBusyId] = useState<string | null>(null);
+  const [verifMsg, setVerifMsg] = useState("");
 
   async function handlePayout(id: string) {
     setPayoutBusyId(id);
@@ -155,6 +158,25 @@ function Dashboard() {
       setReportMsg("Couldn't resolve that report. Try again.");
     } finally {
       setReportBusyId(null);
+    }
+  }
+
+  // Verify (or revoke) a seller. Once verified, their payouts auto-go out;
+  // the sync trigger stamps the ✓ badge onto all their live pieces.
+  async function handleVerify(userId: string, verified: boolean) {
+    setVerifBusyId(userId);
+    setVerifMsg("");
+    try {
+      await setSellerVerifiedAdmin(userId, verified);
+      setVerifMsg(
+        verified
+          ? "Seller verified. Their payouts can now go out automatically."
+          : "Verification revoked. Their payouts stay on hold."
+      );
+    } catch {
+      setVerifMsg("Couldn't update verification. Try again.");
+    } finally {
+      setVerifBusyId(null);
     }
   }
 
@@ -201,6 +223,10 @@ function Dashboard() {
   // to county · area rows, plus the counties that have buyers but no pieces.
   const locations = useLocations();
   const profiles = useAllProfiles();
+  // Seller verification: who has asked to be verified, and a name/badge map
+  // for the Settlements queue (so unverified sellers stand out before payout).
+  const sellerById = new Map((profiles ?? []).map((s) => [s.id, s]));
+  const verificationQueue = (profiles ?? []).filter((s) => s.verificationRequestedAt);
   const locationStats = useMemo(() => {
     const locById = new Map((locations ?? []).map((l) => [l.id, l]));
     const live = (products ?? []).filter((p) => p.status === "active");
@@ -454,6 +480,72 @@ function Dashboard() {
         </div>
       )}
 
+      {/* Seller verification — approve sellers before their first payout */}
+      <div className="mb-10">
+        <h2 className="mb-4 font-display text-xl font-black">
+          Seller verification{" "}
+          {verificationQueue.length > 0 && (
+            <span className="text-accent">({verificationQueue.length} to review)</span>
+          )}
+        </h2>
+        {verifMsg && (
+          <p className="mb-3 rounded-2xl border border-accent/30 bg-accent-soft px-4 py-3 text-sm font-medium">
+            {verifMsg}
+          </p>
+        )}
+        {verificationQueue.length > 0 ? (
+          <ul className="space-y-3">
+            {verificationQueue.map((s) => (
+              <li key={s.id} className="rounded-2xl border border-accent/40 bg-accent-soft/50 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold">{s.name || "Unnamed seller"}</p>
+                    <p className="text-xs text-ink-soft">
+                      {s.email ?? "no email"} · member since {formatDate(s.createdAt)}
+                    </p>
+                    <p className="mt-0.5 text-xs text-ink-soft">
+                      Payout destination:{" "}
+                      <span className="font-semibold text-ink">
+                        {s.payoutMethod === "bank"
+                          ? `bank (${s.bankAccountName || "account name missing"})`
+                          : s.phone
+                            ? `M-Pesa ${s.phone}`
+                            : "none set"}
+                      </span>
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-ink-soft">
+                      Requested {formatDate(s.verificationRequestedAt!)} ·{" "}
+                      {(products ?? []).filter((p) => p.sellerId === s.id && p.status === "active").length}{" "}
+                      live piece{(products ?? []).filter((p) => p.sellerId === s.id && p.status === "active").length === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      onClick={() => handleVerify(s.id, true)}
+                      disabled={verifBusyId === s.id}
+                      className="rounded-full bg-lime px-4 py-1.5 text-xs font-bold text-ink transition hover:brightness-95 disabled:opacity-50"
+                    >
+                      {verifBusyId === s.id ? "…" : "✓ Verify seller"}
+                    </button>
+                    <button
+                      onClick={() => handleVerify(s.id, false)}
+                      disabled={verifBusyId === s.id}
+                      className="rounded-full border border-accent px-4 py-1.5 text-xs font-bold text-accent transition hover:bg-accent hover:text-white disabled:opacity-50"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : profiles !== null ? (
+          <p className="rounded-2xl border border-dashed border-line bg-paper p-6 text-center text-sm text-ink-soft">
+            No verification requests. Sellers request review from their account page.
+          </p>
+        ) : null}
+      </div>
+
       {/* Add a piece (owner) */}
       <AddPieceForm />
 
@@ -685,6 +777,14 @@ function Dashboard() {
                   </p>
                   {p.failureReason && <p className="text-xs text-ink-soft">{p.failureReason}</p>}
                 </div>
+                {sellerById.get(p.to) && !sellerById.get(p.to)!.sellerVerified && (
+                  <span
+                    title="This seller hasn't been verified yet. Approve them in Seller verification above, then pay."
+                    className="shrink-0 rounded-full border border-accent px-3 py-1.5 text-xs font-bold text-accent"
+                  >
+                    ⚠ Unverified seller
+                  </span>
+                )}
                 <span
                   className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                     p.status === "paid"
@@ -775,6 +875,28 @@ function Dashboard() {
                       {d.reason && <p className="mt-0.5 text-xs text-ink-soft">Buyer says: {d.reason}</p>}
                       {!open && d.adminNote && (
                         <p className="mt-0.5 text-xs text-ink-soft">Owner note: {d.adminNote}</p>
+                      )}
+                      {d.proofUrl && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <a
+                            href={d.proofUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="overflow-hidden rounded-xl"
+                          >
+                            <Image
+                              src={d.proofUrl}
+                              alt="Delivery evidence"
+                              width={160}
+                              height={160}
+                              className="h-24 w-24 object-cover"
+                            />
+                          </a>
+                          <p className="text-[11px] text-ink-soft">
+                            Delivery evidence attached
+                            {d.proofUploadedBy ? " (by one of the parties)" : ""}.
+                          </p>
+                        </div>
                       )}
                       {open && linked?.escrowHeldAt && (
                         <p className="mt-0.5 text-[11px] text-ink-soft">Seller payout is held in escrow.</p>

@@ -210,6 +210,14 @@ export default function ProductCard({ product }: { product: Product }) {
                 >
                   {product.sellerName}
                 </Link>
+                {product.sellerVerified && (
+                  <span
+                    title="Verified seller"
+                    className="rounded-full bg-lime px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-ink"
+                  >
+                    ✓
+                  </span>
+                )}
                 <RatingStars sellerId={product.sellerId} size="xs" />
               </>
             ) : (

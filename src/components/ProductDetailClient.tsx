@@ -195,6 +195,11 @@ export default function ProductDetailClient({
                 by {product.sellerName}
               </Link>
             )}
+            {product.sellerVerified && (
+              <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-ink">
+                ✓ Verified seller
+              </span>
+            )}
           </div>
 
           {live ? (

@@ -34,6 +34,8 @@ export interface Database {
           bank_code: string | null;
           bank_account_number: string | null;
           bank_account_name: string | null;
+          seller_verified: boolean;
+          verification_requested_at: string | null;
         };
         Insert: {
           id: string;
@@ -49,6 +51,8 @@ export interface Database {
           bank_code?: string | null;
           bank_account_number?: string | null;
           bank_account_name?: string | null;
+          seller_verified?: boolean;
+          verification_requested_at?: string | null;
         };
         Update: {
           id?: string;
@@ -64,6 +68,8 @@ export interface Database {
           bank_code?: string | null;
           bank_account_number?: string | null;
           bank_account_name?: string | null;
+          seller_verified?: boolean;
+          verification_requested_at?: string | null;
         };
         Relationships: [];
       };
@@ -87,6 +93,7 @@ export interface Database {
           boost_expires_at: string | null;
           location_id: string | null;
           location_label: string;
+          seller_verified: boolean;
         };
         Insert: {
           id?: string;
@@ -107,6 +114,7 @@ export interface Database {
           boost_expires_at?: string | null;
           location_id?: string | null;
           location_label?: string;
+          seller_verified?: boolean;
         };
         Update: {
           id?: string;
@@ -127,6 +135,7 @@ export interface Database {
           boost_expires_at?: string | null;
           location_id?: string | null;
           location_label?: string;
+          seller_verified?: boolean;
         };
         Relationships: [];
       };
@@ -527,6 +536,8 @@ export interface Database {
           admin_note: string | null;
           created_at: string;
           resolved_at: string | null;
+          proof_url: string | null;
+          proof_uploaded_by: string | null;
         };
         Insert: {
           id?: string;
@@ -537,6 +548,8 @@ export interface Database {
           admin_note?: string | null;
           created_at?: string;
           resolved_at?: string | null;
+          proof_url?: string | null;
+          proof_uploaded_by?: string | null;
         };
         Update: {
           id?: string;
@@ -547,6 +560,8 @@ export interface Database {
           admin_note?: string | null;
           created_at?: string;
           resolved_at?: string | null;
+          proof_url?: string | null;
+          proof_uploaded_by?: string | null;
         };
         Relationships: [];
       };
@@ -858,7 +873,26 @@ export interface Database {
           avg_score: number | null;
           rating_count: number;
           sales: number;
+          seller_verified: boolean;
         }[];
+      };
+      request_seller_verification: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
+      admin_set_seller_verified: {
+        Args: {
+          p_user_id: string;
+          p_verified: boolean;
+        };
+        Returns: undefined;
+      };
+      add_dispute_proof: {
+        Args: {
+          p_dispute_id: string;
+          p_url: string;
+        };
+        Returns: undefined;
       };
       rate_limit_hit: {
         Args: {

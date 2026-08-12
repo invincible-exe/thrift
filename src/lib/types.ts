@@ -23,6 +23,8 @@ export interface Product {
   source: ProductSource;
   sellerId?: string | null;
   sellerName?: string | null;
+  /** Owner-verified seller (shows the ✓ verified badge). */
+  sellerVerified?: boolean;
   status: "active" | "sold" | "pending";
   /** The seller's chosen meetup area id (locations table). */
   locationId?: string;
@@ -144,6 +146,10 @@ export interface OrderDispute {
   reason: string;
   status: "open" | "resolved";
   adminNote?: string;
+  /** Delivery-proof photo the buyer or seller attached (evidence for the owner). */
+  proofUrl?: string;
+  /** Who uploaded the proof photo (buyer or seller user id). */
+  proofUploadedBy?: string;
   createdAt: Date;
   resolvedAt?: Date;
 }

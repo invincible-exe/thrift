@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useShop } from "@/context/ShopContext";
 import {
+  addDisputeProof,
   cancelOrderNoShow,
   confirmOrderReceipt,
   dispatchPendingPayouts,
@@ -13,12 +14,16 @@ import {
   hasRatedOrder,
   releaseExpiredEscrow,
   reportPayoutMissing,
+  requestSellerVerification,
   updatePayoutSettings,
   updateProfileLocation,
   updateProfilePhone,
+  uploadProductImage,
+  useOpenDispute,
   usePayoutSettings,
   useProfileLocation,
   useProfilePhone,
+  useSellerVerification,
   useUserListings,
   useUserOrders,
   useUserPayouts,
@@ -74,6 +79,7 @@ function SignedIn() {
   const listings = useUserListings(uid);
   const payouts = useUserPayouts(uid);
   const payoutReports = useUserPayoutReports(uid);
+  const verification = useSellerVerification(uid);
   const phone = useProfilePhone(uid);
   // Draft stays null until the user types, so we never sync server state
   // inside an effect (avoids a stale write racing the async phone fetch).
@@ -200,6 +206,11 @@ function SignedIn() {
         </div>
       </div>
 
+      {/* Seller verification — the ✓ badge + the first-payout gate */}
+      <div className="mt-5">
+        <SellerVerificationCard verification={verification} />
+      </div>
+
       {/* Purchases */}
       <div className="mt-10">
         <h2 className="mb-4 font-display text-xl font-black">My purchases</h2>
@@ -292,6 +303,86 @@ function SignedIn() {
         <BoostModal listing={boostTarget} initialPhone={phoneValue} onClose={() => setBoostTarget(null)} />
       )}
     </section>
+  );
+}
+
+/**
+ * Seller verification card: the ✓ badge + the first-payout gate. Every
+ * seller can request verification; the owner approves it from the admin
+ * dashboard. Until verified, earnings sit in 'pending' instead of going
+ * out automatically.
+ */
+function SellerVerificationCard({
+  verification,
+}: {
+  verification: { sellerVerified: boolean; verificationRequestedAt: Date | null } | null;
+}) {
+  const { showToast } = useShop();
+  const [busy, setBusy] = useState(false);
+  // Local copy so the card flips to "under review" instantly after
+  // requesting, without waiting for a refetch.
+  const [requestedAt, setRequestedAt] = useState<Date | null>(null);
+
+  if (!verification) return null;
+
+  if (verification.sellerVerified) {
+    return (
+      <div className="flex items-start gap-3 rounded-2xl border border-lime/60 bg-lime/15 p-4">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-lime text-sm font-black text-ink">
+          ✓
+        </span>
+        <div>
+          <p className="font-display text-sm font-extrabold">Verified seller</p>
+          <p className="mt-0.5 text-xs text-ink-soft">
+            Your pieces carry the ✓ badge and your payouts go out automatically.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const pending = Boolean(verification.verificationRequestedAt ?? requestedAt);
+
+  const request = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const at = await requestSellerVerification();
+      setRequestedAt(at);
+      showToast("Verification requested. The owner will review your account.");
+    } catch (e) {
+      showToast(
+        e instanceof Error
+          ? /PAYOUT_DETAILS_REQUIRED/i.test(e.message)
+            ? "Add your payout details (M-Pesa number or bank) above first."
+            : e.message
+          : "Couldn't request verification."
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-line bg-sand/40 p-4">
+      <p className="font-display text-sm font-extrabold">
+        {pending ? "⏳ Verification under review" : "Get verified as a seller"}
+      </p>
+      <p className="mt-1 text-xs leading-relaxed text-ink-soft">
+        {pending
+          ? "The owner reviews your payout details before your first payout goes out."
+          : "Verified sellers get the ✓ badge and their payouts go out automatically. Add your payout details above, then request review."}
+      </p>
+      {!pending && (
+        <button
+          onClick={request}
+          disabled={busy}
+          className="mt-3 rounded-full bg-ink px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-cream transition hover:bg-accent disabled:opacity-50"
+        >
+          {busy ? "Requesting…" : "Request verification"}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -662,6 +753,7 @@ function ClosetCard({
         )}
         {l.status === "sold" && l.orderId && (
           <div className="mt-3 space-y-3 border-t border-line pt-3">
+            <SellerDisputeNotice orderId={l.orderId} />
             <SellerChat orderId={l.orderId} />
             <SellerSafety orderId={l.orderId} />
           </div>
@@ -700,6 +792,9 @@ function OrderCard({
   const [cancelArm, setCancelArm] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelMsg, setCancelMsg] = useState<string | null>(null);
+  const [proofBusy, setProofBusy] = useState(false);
+  // The open dispute on this order (buyer can read it; lets us attach evidence).
+  const dispute = useOpenDispute(order.id);
 
   const uid = user?.id ?? null;
 
@@ -769,6 +864,23 @@ function OrderCard({
       setCancelArm(false);
     } finally {
       setCancelBusy(false);
+    }
+  };
+
+  // Attach delivery evidence to the open dispute (proof photo for the owner).
+  const attachProof = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uid || proofBusy || !dispute) return;
+    setProofBusy(true);
+    try {
+      const up = await uploadProductImage(uid, file);
+      await addDisputeProof(dispute.id, up.url);
+      showToast("Evidence attached. The owner can now review it.");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Couldn't attach the evidence.");
+    } finally {
+      setProofBusy(false);
+      e.target.value = "";
     }
   };
 
@@ -932,6 +1044,41 @@ function OrderCard({
               {formatDate(new Date(order.completedAt.getTime() + NO_SHOW_WINDOW_MS))}.
             </p>
           )}
+          {order.disputedAt && (
+            <div className="rounded-xl bg-accent-soft/40 px-3 py-2.5">
+              <p className="text-xs font-bold text-accent">Dispute in review</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-ink-soft">
+                Attach evidence (like a delivery photo) to help the owner resolve it fairly.
+              </p>
+              {dispute?.proofUrl ? (
+                <a
+                  href={dispute.proofUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block overflow-hidden rounded-xl"
+                >
+                  <Image
+                    src={dispute.proofUrl}
+                    alt="Delivery evidence"
+                    width={160}
+                    height={160}
+                    className="h-20 w-20 object-cover"
+                  />
+                </a>
+              ) : (
+                <label className="mt-2 inline-block cursor-pointer rounded-full border border-accent px-3 py-1 text-[11px] font-bold text-accent transition hover:bg-accent hover:text-white">
+                  {proofBusy ? "Uploading…" : "📷 Attach delivery evidence"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={attachProof}
+                    disabled={proofBusy}
+                  />
+                </label>
+              )}
+            </div>
+          )}
         </div>
       )}
     </li>
@@ -973,6 +1120,67 @@ function SellerSafety({ orderId }: { orderId: string }) {
         <div className="mt-2">
           <MeetupSafety orderId={orderId} isSeller />
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Dispute notice on the seller's sold listing: if the buyer filed "I didn't
+ * receive it", the seller sees it here and can attach delivery proof for the
+ * owner's review (same evidence the buyer can add on their side).
+ */
+function SellerDisputeNotice({ orderId }: { orderId: string }) {
+  const { user } = useAuth();
+  const { showToast } = useShop();
+  const dispute = useOpenDispute(orderId);
+  const [busy, setBusy] = useState(false);
+
+  if (!dispute || dispute.status !== "open") return null;
+
+  const attachProof = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || busy) return;
+    setBusy(true);
+    try {
+      const up = await uploadProductImage(user.id, file);
+      await addDisputeProof(dispute.id, up.url);
+      showToast("Delivery proof attached. The owner can now review it.");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Couldn't attach the proof.");
+    } finally {
+      setBusy(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div className="rounded-xl bg-accent-soft/40 px-3 py-2.5">
+      <p className="text-xs font-bold text-accent">⚠ Dispute in review</p>
+      <p className="mt-0.5 text-[11px] leading-relaxed text-ink-soft">
+        The buyer says they didn&apos;t receive this piece. Attach delivery proof to help the owner
+        resolve it fairly.
+      </p>
+      {dispute.proofUrl ? (
+        <a
+          href={dispute.proofUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-block overflow-hidden rounded-xl"
+        >
+          <Image
+            src={dispute.proofUrl}
+            alt="Delivery proof"
+            width={160}
+            height={160}
+            className="h-20 w-20 object-cover"
+          />
+        </a>
+      ) : (
+        <label className="mt-2 inline-block cursor-pointer rounded-full border border-accent px-3 py-1 text-[11px] font-bold text-accent transition hover:bg-accent hover:text-white">
+          {busy ? "Uploading…" : "📷 Attach delivery proof"}
+          <input type="file" accept="image/*" className="sr-only" onChange={attachProof} disabled={busy} />
+        </label>
       )}
     </div>
   );

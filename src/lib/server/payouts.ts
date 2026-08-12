@@ -258,6 +258,24 @@ export async function autoPayOrderPayouts(orderIds: string[]): Promise<{
 }
 
 /**
+ * Which of the given seller ids the owner has verified. The first-payout
+ * gate: automatic dispatch skips anyone not in this set, so an unverified
+ * seller's share sits in 'pending' until the owner reviews them in the
+ * admin dashboard (Settlements → verify → next sweep pays).
+ */
+async function verifiedSellerIds(sellerIds: string[]): Promise<Set<string>> {
+  const unique = [...new Set(sellerIds.filter(Boolean))];
+  if (unique.length === 0) return new Set();
+  const admin = getAdminClient();
+  const { data } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("seller_verified", true)
+    .in("id", unique);
+  return new Set((data ?? []).map((r) => String(r.id)));
+}
+
+/**
  * Guaranteed pay trigger — push EVERY 'pending' seller payout out via
  * Paystack Transfers. Runs after a buyer confirms receipt and after the
  * escrow sweep releases expired escrows, so released money is sent
@@ -276,11 +294,21 @@ export async function autoPayPendingSellerPayouts(): Promise<{
     const admin = getAdminClient();
     const { data: payouts } = await admin
       .from("payouts")
-      .select("id")
+      .select("id, to")
       .eq("role", "seller")
       .eq("status", "pending");
 
+    const verified = await verifiedSellerIds((payouts ?? []).map((p) => String(p.to)));
+
     for (const p of (payouts ?? []) as Row[]) {
+      // First-payout gate: the owner must verify a seller before their money
+      // auto-goes out. Unverified sellers' payouts stay 'pending' and show in
+      // the admin Settlements queue for review (the owner approves the seller
+      // first, then the next sweep sends it).
+      if (!verified.has(String(p.to ?? ""))) {
+        tally.skipped += 1;
+        continue;
+      }
       try {
         const res = await sendPaystackPayout(String(p.id));
         if (res.ok) tally.sent += 1;
@@ -323,12 +351,21 @@ export async function autoPaySellerPayouts(reference: string): Promise<{
 
     const { data: payouts } = await admin
       .from("payouts")
-      .select("id")
+      .select("id, to")
       .eq("order_id", order.id)
       .eq("role", "seller")
       .eq("status", "pending");
 
+    const verified = await verifiedSellerIds((payouts ?? []).map((p) => String(p.to)));
+
     for (const p of (payouts ?? []) as Row[]) {
+      // Same first-payout gate as autoPayPendingSellerPayouts: an unverified
+      // seller's share stays 'pending' for the owner's review, even on the
+      // instant-pay path right after a sale completes.
+      if (!verified.has(String(p.to ?? ""))) {
+        tally.skipped += 1;
+        continue;
+      }
       try {
         const res = await sendPaystackPayout(String(p.id));
         if (res.ok) tally.sent += 1;

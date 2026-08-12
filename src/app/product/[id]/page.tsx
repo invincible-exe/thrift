@@ -30,6 +30,7 @@ function productFromRow(row: Row): Product {
     source: row.source === "community" ? "community" : "platform",
     sellerId: row.seller_id ? String(row.seller_id) : null,
     sellerName: row.seller_name ? String(row.seller_name) : null,
+    sellerVerified: Boolean(row.seller_verified),
     status: row.status === "sold" ? "sold" : row.status === "pending" ? "pending" : "active",
     createdAt: new Date(String(row.created_at ?? 0)),
     boostExpiresAt: row.boost_expires_at ? new Date(String(row.boost_expires_at)) : undefined,

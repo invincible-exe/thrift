@@ -14,6 +14,7 @@ export interface SellerProfile {
   avgScore: number | null;
   ratingCount: number;
   sales: number;
+  sellerVerified: boolean;
 }
 
 /** Server-side row → Product mapping (mirrors db.ts — kept local so this
@@ -38,6 +39,7 @@ function productFromRow(row: Row): Product {
     source: row.source === "community" ? "community" : "platform",
     sellerId: row.seller_id ? String(row.seller_id) : null,
     sellerName: row.seller_name ? String(row.seller_name) : null,
+    sellerVerified: Boolean(row.seller_verified),
     status: row.status === "sold" ? "sold" : row.status === "pending" ? "pending" : "active",
     createdAt: new Date(String(row.created_at ?? 0)),
     boostExpiresAt: row.boost_expires_at ? new Date(String(row.boost_expires_at)) : undefined,
@@ -59,6 +61,7 @@ async function fetchSellerProfile(id: string): Promise<SellerProfile | null> {
     avgScore: row.avg_score != null ? Number(row.avg_score) : null,
     ratingCount: Number(row.rating_count ?? 0),
     sales: Number(row.sales ?? 0),
+    sellerVerified: Boolean(row.seller_verified),
   };
 }
 

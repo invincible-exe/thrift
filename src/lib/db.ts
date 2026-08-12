@@ -50,6 +50,7 @@ function productFromRow(row: Row): Product {
     source: row.source === "community" ? "community" : "platform",
     sellerId: row.seller_id ? String(row.seller_id) : null,
     sellerName: row.seller_name ? String(row.seller_name) : null,
+    sellerVerified: Boolean(row.seller_verified),
     status: row.status === "sold" ? "sold" : row.status === "pending" ? "pending" : "active",
     createdAt: toDate(row.created_at),
     boostExpiresAt: row.boost_expires_at ? toDate(row.boost_expires_at) : undefined,
@@ -165,6 +166,8 @@ function disputeFromRow(row: Row): OrderDispute {
     reason: String(row.reason ?? ""),
     status: row.status === "resolved" ? "resolved" : "open",
     adminNote: row.admin_note ? String(row.admin_note) : undefined,
+    proofUrl: row.proof_url ? String(row.proof_url) : undefined,
+    proofUploadedBy: row.proof_uploaded_by ? String(row.proof_uploaded_by) : undefined,
     createdAt: toDate(row.created_at),
     resolvedAt: row.resolved_at ? toDate(row.resolved_at) : undefined,
   };
@@ -866,12 +869,21 @@ export function useAllProducts(): Product[] | null {
   return useRealtimeRows("products", productFromRow, { max: 200 });
 }
 
-/** A profile row the admin dashboard needs (no phone/email — least data). */
+/** A profile row the admin dashboard needs. Includes the verification state
+ *  and payout destination so the owner can review sellers before paying them. */
 export interface ProfileStat {
   id: string;
   name: string;
   locationId: string | null;
   createdAt: Date;
+  /** Owner-verified seller (badge + payout eligibility). */
+  sellerVerified: boolean;
+  /** When the seller asked to be verified (null = no request). */
+  verificationRequestedAt: Date | null;
+  email: string | null;
+  phone: string | null;
+  payoutMethod: string;
+  bankAccountName: string | null;
 }
 
 // Module-level so the realtime hook's `mapper` dep stays stable (an inline
@@ -882,6 +894,14 @@ function profileStatFromRow(row: Row): ProfileStat {
     name: String(row.name ?? ""),
     locationId: row.location_id ? String(row.location_id) : null,
     createdAt: toDate(row.created_at),
+    sellerVerified: Boolean(row.seller_verified),
+    verificationRequestedAt: row.verification_requested_at
+      ? toDate(row.verification_requested_at)
+      : null,
+    email: row.email ? String(row.email) : null,
+    phone: row.phone ? String(row.phone) : null,
+    payoutMethod: row.payout_method === "bank" ? "bank" : "mpesa",
+    bankAccountName: row.bank_account_name ? String(row.bank_account_name) : null,
   };
 }
 
@@ -1143,6 +1163,67 @@ export async function updateProfilePhone(uid: string, phone: string): Promise<vo
   const client = getBrowserClient();
   if (!client) throw new Error("SUPABASE_NOT_CONFIGURED");
   const { error } = await client.from("profiles").update({ phone }).eq("id", uid);
+  if (error) throw error;
+}
+
+/* ------------------------------------------------------------------ */
+/* Seller verification (verified badge + first-payout gate)            */
+/* ------------------------------------------------------------------ */
+
+/** The signed-in user's own verification state (null while loading). */
+export function useSellerVerification(uid: string | null): {
+  sellerVerified: boolean;
+  verificationRequestedAt: Date | null;
+} | null {
+  const [state, setState] = useState<{
+    sellerVerified: boolean;
+    verificationRequestedAt: Date | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!uid || !isSupabaseConfigured) return;
+    const client = getBrowserClient();
+    if (!client) return;
+    let active = true;
+    client
+      .from("profiles")
+      .select("seller_verified, verification_requested_at")
+      .eq("id", uid)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!active || !data) return;
+        setState({
+          sellerVerified: Boolean(data.seller_verified),
+          verificationRequestedAt: data.verification_requested_at
+            ? new Date(String(data.verification_requested_at))
+            : null,
+        });
+      });
+    return () => {
+      active = false;
+    };
+  }, [uid]);
+
+  return state;
+}
+
+/** Seller asks the owner to verify them (returns the requested-at time). */
+export async function requestSellerVerification(): Promise<Date> {
+  const client = getBrowserClient();
+  if (!client) throw new Error("SUPABASE_NOT_CONFIGURED");
+  const { data, error } = await client.rpc("request_seller_verification");
+  if (error) throw new Error(String(error.message ?? "Could not request verification."));
+  return new Date(String(data));
+}
+
+/** Admin approves (or revokes) a seller's verification. */
+export async function setSellerVerifiedAdmin(userId: string, verified: boolean): Promise<void> {
+  const client = getBrowserClient();
+  if (!client) throw new Error("SUPABASE_NOT_CONFIGURED");
+  const { error } = await client.rpc("admin_set_seller_verified", {
+    p_user_id: userId,
+    p_verified: verified,
+  });
   if (error) throw error;
 }
 
@@ -1421,6 +1502,28 @@ export async function stopMeetupShare(orderId: string): Promise<void> {
 /** All order disputes — the admin support queue. */
 export function useOrderDisputes(): OrderDispute[] | null {
   return useRealtimeRows("order_disputes", disputeFromRow, { max: 100 });
+}
+
+/** The newest dispute on one order (open ones surface for buyer + seller
+ *  to answer with proof; RLS lets both parties and admins read it). */
+export function useOpenDispute(orderId: string | null): OrderDispute | null {
+  const rows = useRealtimeRows("order_disputes", disputeFromRow, {
+    filterColumn: "order_id",
+    filterValue: orderId,
+    max: 1,
+  });
+  return rows && rows.length > 0 ? rows[0] : null;
+}
+
+/** Attach a delivery-proof photo to an open dispute (buyer or seller). */
+export async function addDisputeProof(disputeId: string, url: string): Promise<void> {
+  const client = getBrowserClient();
+  if (!client) throw new Error("SUPABASE_NOT_CONFIGURED");
+  const { error } = await client.rpc("add_dispute_proof", {
+    p_dispute_id: disputeId,
+    p_url: url,
+  });
+  if (error) throw new Error(String(error.message ?? "Couldn't attach the proof."));
 }
 
 /**
