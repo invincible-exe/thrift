@@ -551,10 +551,15 @@ export async function uploadProductImage(userId: string, file: File): Promise<Up
   if (!isSupabaseConfigured) throw new Error("SUPABASE_NOT_CONFIGURED");
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch("/api/storage/upload", {
-    method: "POST",
-    body: form,
-  });
+  // Mobile connections drop mid-upload all the time — retry once before
+  // giving up, so a single blip doesn't kill the whole listing.
+  let res: Response;
+  try {
+    res = await fetch("/api/storage/upload", { method: "POST", body: form });
+  } catch {
+    await new Promise((r) => setTimeout(r, 1200));
+    res = await fetch("/api/storage/upload", { method: "POST", body: form });
+  }
   const data = (await res.json().catch(() => ({}))) as {
     url?: string;
     path?: string;

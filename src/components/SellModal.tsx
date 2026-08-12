@@ -12,6 +12,7 @@ import {
   type UploadedImage,
 } from "@/lib/db";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { compressImage } from "@/lib/compress-image";
 import { CATEGORIES, CONDITIONS, PLATFORM_COMMISSION_MIN_KES } from "@/lib/constants";
 import { computeCommission } from "@/lib/payments";
 import LocationPicker from "./LocationPicker";
@@ -27,9 +28,11 @@ const INITIAL = {
   description: "",
 };
 
-// Listing photos — up to 5, each 5 MB max (plenty for a phone photo).
+// Listing photos — up to 5. Raw phone photos can be 5-10MB, but every
+// selected photo is compressed client-side before upload, so the 20MB cap
+// is just a sanity guard against absurd files.
 const MAX_PHOTOS = 5;
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
 interface PickedImage {
   file: File;
@@ -82,7 +85,7 @@ export default function SellModal() {
     reset();
   };
 
-  const handleImagesSelect = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleImagesSelect = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
     const room = MAX_PHOTOS - images.length;
@@ -108,7 +111,16 @@ export default function SellModal() {
       );
       return;
     }
-    const added = files.map((file) => ({ file, previewUrl: URL.createObjectURL(file) }));
+    // Compress each photo before it goes anywhere — phone photos are
+    // 3-8MB, and Vercel's serverless functions cap request bodies at
+    // ~4.5MB, so raw uploads die with "Failed to fetch".
+    // Sequential, not parallel: decoding 5 full-size phone photos at once
+    // can blow through memory on the low-end devices this fix targets.
+    const added: PickedImage[] = [];
+    for (const file of files) {
+      const compressed = await compressImage(file);
+      added.push({ file: compressed, previewUrl: URL.createObjectURL(compressed) });
+    }
     setImages((prev) => [...prev, ...added]);
     setPhase("idle");
     setMessage("");
@@ -183,7 +195,14 @@ export default function SellModal() {
         err instanceof Error
           ? err.message
           : String((err as { message?: unknown } | null | undefined)?.message ?? err);
-      setMessage(`Couldn't create the listing: ${detail.slice(0, 160)}`);
+      // A raw browser network error ("Failed to fetch") means the request
+      // never got a response — usually a dropped connection, not a bug.
+      // Say so plainly instead of leaking the technical message.
+      if (/failed to fetch|networkerror|load failed|typeerror/i.test(detail)) {
+        setMessage("Couldn't reach the server — check your connection and try again.");
+      } else {
+        setMessage(`Couldn't create the listing: ${detail.slice(0, 160)}`);
+      }
       console.error("createListing failed:", err);
     }
   }
