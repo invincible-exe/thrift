@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo, Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import ScrollProgress from "@/components/ui/ScrollProgress";
 import FloatingContact from "@/components/ui/FloatingContact";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -22,7 +23,25 @@ export const metadata: Metadata = {
   title: "10/10 Thrifts | Premium Curated Thrift",
   description:
     "1-of-1 premium pieces, no doubles ever. Browse free, pay with M-Pesa or bank transfer. Sell your fits for 90% of the sale.",
-  icons: { icon: "/icon.svg" },
+  // PWA: the manifest makes the site installable ("Add to Home Screen" /
+  // "Install app"); the appleWebApp + apple-touch-icon entries give iPhones
+  // the fullscreen app treatment on their own "Add to Home Screen".
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "10/10 Thrifts",
+  },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+// Browser UI chrome matches the app's dark paper background. (theme-color
+// in the viewport export — the metadata themeColor form is deprecated.)
+export const viewport: Viewport = {
+  themeColor: "#1e1915",
 };
 
 export default function RootLayout({
@@ -56,6 +75,8 @@ export default function RootLayout({
         <ScrollProgress />
         <Providers>{children}</Providers>
         <FloatingContact />
+        {/* PWA service worker — registers itself only in production. */}
+        <ServiceWorkerRegister />
         {/* Dedicated portal target. Toast/Modal portal here instead of
             document.body so React's hydration never scans the whole body and
             misattributes sibling fixed-position elements (FloatingContact). */}
