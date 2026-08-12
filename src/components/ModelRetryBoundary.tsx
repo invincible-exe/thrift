@@ -1,18 +1,35 @@
 "use client";
 
-import { Component, Fragment, type ReactNode } from "react";
+import { Component, Fragment, createContext, type ReactNode } from "react";
 import { useGLTF } from "@react-three/drei";
 import { MODEL_URLS } from "@/lib/model-urls";
 
 /**
+ * Model-loading status, shared from the retry boundary down to the model
+ * (which reports when its scene is actually rendering) and up to the hero
+ * card's loading overlay (which fades out once the model paints). Context
+ * flows through the R3F canvas, so ModelScene can reach it directly.
+ */
+interface ModelStatus {
+  loaded: boolean;
+  markLoaded: () => void;
+}
+
+export const ModelStatusContext = createContext<ModelStatus | null>(null);
+
+/**
  * Soft studio glow shown while the model streams in (and during a retry
- * backoff). Matches the Suspense fallback the card used before, so a retry
- * never looks like a regression — just "still loading".
+ * backoff) — WITH a caption, so the loading state reads as intentional
+ * instead of a broken empty window. Used everywhere the card waits on the
+ * 3D: pre-page-ready, chunk download, GLB fetch, and retry backoff.
  */
 export function ModelGlow() {
   return (
-    <div className="flex h-full w-full items-center justify-center">
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3">
       <div className="h-24 w-24 animate-pulse rounded-full bg-gradient-to-br from-lime/30 via-accent/20 to-transparent blur-2xl" />
+      <span className="text-[10px] font-bold uppercase tracking-[0.35em] text-cream/50">
+        Loading the lineup…
+      </span>
     </div>
   );
 }
@@ -28,6 +45,7 @@ interface State {
   retrying: boolean;
   error: Error | null;
   giveUp: boolean;
+  loaded: boolean;
 }
 
 /**
@@ -55,11 +73,14 @@ interface State {
  * user no longer needs to refresh the whole page.
  */
 export default class ModelRetryBoundary extends Component<Props, State> {
-  state: State = { attempt: 0, retrying: false, error: null, giveUp: false };
+  state: State = { attempt: 0, retrying: false, error: null, giveUp: false, loaded: false };
   private timer: ReturnType<typeof setTimeout> | null = null;
 
+  // Stable per-instance so ModelScene's effect doesn't re-run every render.
+  private markLoaded = () => this.setState({ loaded: true });
+
   static getDerivedStateFromError(error: Error): Partial<State> {
-    return { retrying: true, error };
+    return { retrying: true, error, loaded: false };
   }
 
   componentDidCatch() {
@@ -95,6 +116,10 @@ export default class ModelRetryBoundary extends Component<Props, State> {
     if (this.state.retrying) return <ModelGlow />;
     // key remounts the whole 3D subtree (fresh WebGL context + fetches) on
     // every retry — a stale canvas can't be reused after a failure.
-    return <Fragment key={this.state.attempt}>{this.props.children}</Fragment>;
+    return (
+      <ModelStatusContext.Provider value={{ loaded: this.state.loaded, markLoaded: this.markLoaded }}>
+        <Fragment key={this.state.attempt}>{this.props.children}</Fragment>
+      </ModelStatusContext.Provider>
+    );
   }
 }

@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { Suspense, useContext, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { getDeviceTier } from "@/lib/device";
 import { MODEL_FULL, MODEL_LITE, MODEL_MOBILE } from "@/lib/model-urls";
+import { ModelStatusContext } from "./ModelRetryBoundary";
 
 /**
  * The hero model (public/models/modelToUse.glb): the 6 fashion characters as
@@ -88,7 +89,21 @@ function modelUrl(): string {
   if (typeof navigator === "undefined") return MODEL_FULL; // SSR-safe
   const tier = getDeviceTier();
   if (tier === "lite") return MODEL_LITE;
-  if (tier === "mobile") return MODEL_MOBILE;
+  if (tier === "mobile") {
+    // On genuinely slow connections even a capable phone can't afford a
+    // 3.6MB first paint — serve the lite model so the lineup shows up fast
+    // on first use. Phone-tier only: a desktop is never downgraded by a
+    // flaky "3g" signal (Chrome's heuristics are notorious for that on WiFi).
+    const conn = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection;
+    if (
+      conn?.effectiveType === "slow-2g" ||
+      conn?.effectiveType === "2g" ||
+      conn?.effectiveType === "3g"
+    ) {
+      return MODEL_LITE;
+    }
+    return MODEL_MOBILE;
+  }
   return MODEL_FULL;
 }
 
@@ -159,6 +174,13 @@ function ModelScene({
   groupRef: RefObject<THREE.Group | null>;
 }) {
   const { scene } = useGLTF(url);
+  // Once this component renders (suspense resolved → the scene is actually
+  // in the canvas), tell the card's loading overlay to fade out. Context
+  // flows through the R3F canvas from ModelRetryBoundary above.
+  const { markLoaded } = useContext(ModelStatusContext) ?? {};
+  useEffect(() => {
+    markLoaded?.();
+  }, [markLoaded]);
   // Respect the site-wide reduced-motion preference (checked once on mount).
   const reducedMotion = useRef(false);
   useLayoutEffect(() => {

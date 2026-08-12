@@ -8,8 +8,10 @@ import { gsap, useGSAP, SplitText } from "@/lib/gsap";
 const CyberCard = dynamic(() => import("./CyberCard"), {
   ssr: false,
   loading: () => (
-    <div className="h-full w-full animate-pulse">
-      <div className="h-64 w-64 rounded-full bg-sand blur-2xl" />
+    // Matches the card's own loading glow (lime→accent) so the hero never
+    // flashes a light-colored placeholder on the dark card.
+    <div className="flex h-full w-full items-center justify-center">
+      <div className="h-28 w-28 animate-pulse rounded-full bg-gradient-to-br from-lime/30 via-accent/20 to-transparent blur-2xl" />
     </div>
   ),
 });

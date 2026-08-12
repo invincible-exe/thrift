@@ -1,22 +1,18 @@
 "use client";
 
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useContext, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import ErrorBoundary from "./ui/ErrorBoundary";
-import ModelRetryBoundary, { ModelGlow } from "./ModelRetryBoundary";
+import ModelRetryBoundary, { ModelGlow, ModelStatusContext } from "./ModelRetryBoundary";
 import { getDeviceTier } from "@/lib/device";
 import { usePageReady } from "@/lib/use-page-ready";
 import styles from "./CyberCard.module.css";
 
-const Hero3D = dynamic(() => import("./Hero3D"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-full w-full items-center justify-center">
-      <div className="h-28 w-28 animate-pulse rounded-full bg-sand blur-2xl" />
-    </div>
-  ),
-});
+// No loading fallback here: the branded loading overlay (below) is the single
+// loading indicator, so the card never shows two competing loading states
+// while the chunk downloads.
+const Hero3D = dynamic(() => import("./Hero3D"), { ssr: false });
 
 // Phone GPUs are the risky case for the 3M-vertex model. The shared tier
 // check (src/lib/device.ts) decides whether this device gets 3D at all:
@@ -81,6 +77,28 @@ const TRACKER_TILTS = [
  * turntable (drag deltas feed Hero3D's rotationTarget), while hovering
  * still tilts the card.
  */
+/**
+ * Branded loading overlay for the model window. Rendered OVER the canvas
+ * from the first moment (page ready, chunk download, GLB fetch, retry
+ * backoff) and fades out the instant the model actually paints (via
+ * ModelStatusContext), so a first-time visitor never stares at an
+ * unexplained empty hole in the card.
+ */
+function ModelLoadingLayer() {
+  const status = useContext(ModelStatusContext);
+  const loading = status ? !status.loaded : true;
+  return (
+    <div
+      aria-hidden={!loading}
+      className={`pointer-events-none absolute inset-0 z-10 flex items-center justify-center transition-opacity duration-700 ${
+        loading ? "opacity-100" : "opacity-0"
+      }`}
+    >
+      <ModelGlow />
+    </div>
+  );
+}
+
 /** Static poster shown when the 3D can't run (no WebGL / low-end device). */
 function StaticPoster() {
   return (
@@ -200,12 +218,15 @@ export default function CyberCard() {
                    aborted model download self-heals instead of needing a
                    refresh; only after retries does the poster appear. */}
             <div className={styles.modelSlot}>
-              {!pageReady ? (
-                <ModelGlow />
+              {render3D === null ? (
+                // Page still loading — show the branded loading state until
+                // the tier is decided (the 3D is deferred to page-ready).
+                <ModelLoadingLayer />
               ) : render3D === true ? (
                 <ErrorBoundary fallback={<StaticPoster />}>
                   <ModelRetryBoundary>
-                    <Suspense fallback={<ModelGlow />}>
+                    <ModelLoadingLayer />
+                    <Suspense fallback={null}>
                       <Hero3D interactive={false} rotationTarget={rotation} />
                     </Suspense>
                   </ModelRetryBoundary>
