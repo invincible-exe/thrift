@@ -135,6 +135,7 @@ function CheckoutPanel({ product, onClose }: { product: Product; onClose: () => 
   const FRIENDLY_ERRORS: Record<string, string> = {
     PIECE_SOLD: "Someone just grabbed this piece. Keep scrolling — new drops land weekly.",
     PIECE_BEING_CHECKED_OUT: "Someone is already checking this piece out. Try again shortly.",
+    CANNOT_BUY_OWN: "You can't buy your own piece.",
     AUTH_REQUIRED: "Please sign in again, then retry the checkout.",
     INVALID_PHONE: "Enter a valid M-Pesa number, e.g. 0712 345 678.",
     PAYMENT_KEYS_MISSING: "Checkout is paused while payments are being configured. Please try again later.",
@@ -151,6 +152,14 @@ function CheckoutPanel({ product, onClose }: { product: Product; onClose: () => 
     if (!isSupabaseConfigured) {
       setPhase("error");
       setMessage("Connect Supabase to enable checkout. See the README for setup.");
+      return;
+    }
+    // Sellers can't buy their own pieces — also enforced server-side, but
+    // a saved checkout intent (surviving an OAuth round-trip) could land
+    // here with the user now signed in as the piece's owner.
+    if (product.sellerId && product.sellerId === user.id) {
+      setPhase("error");
+      setMessage("You can't buy your own piece.");
       return;
     }
 

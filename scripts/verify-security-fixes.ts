@@ -14,6 +14,9 @@
  *     for the same reference produce exactly ONE payout row.
  *  4. mark_order_failed no longer stamps completed_at on failed orders.
  *  5. Backfill applied — no existing failed orders carry completed_at.
+ *  6. Self-purchase blocked — finalize_order refuses an order whose buyer
+ *     is the product's seller (CANNOT_BUY_OWN, no payout routed).
+ *  7. Admin-delete cleanup — no pending orders point at deleted products.
  *
  * Also checks the rate_limits table is invisible to the anon (browser) key.
  */
@@ -267,6 +270,90 @@ async function main() {
       ok("no failed orders carry completed_at (backfill applied)");
     } else {
       bad("failed orders still carry completed_at", `${stragglers.length} row(s)`);
+    }
+
+    // ==================================================================
+    // 6. Self-purchase blocked (migration 0021)
+    // ==================================================================
+    console.log("\n=== 6. sellers can't buy their own pieces ===");
+    const ownRef = `${RUN}-own`;
+    const { data: ownProduct, error: ownPErr } = await sb
+      .from("products")
+      .insert({
+        title: "Self-purchase probe",
+        brand: "verify",
+        category: "Tops",
+        size: "M",
+        condition: "Very good",
+        price_kes: 400,
+        image_url: "",
+        status: "pending",
+        source: "community",
+        seller_id: uid,
+        location_label: "",
+      })
+      .select("id")
+      .single();
+    if (ownPErr || !ownProduct) {
+      bad("create temp product with seller", ownPErr?.message ?? "no row");
+    } else {
+      track("product", ownProduct.id);
+      const { data: ownOrder, error: ownOErr } = await sb
+        .from("orders")
+        .insert({
+          product_id: ownProduct.id,
+          buyer_id: uid, // the SELLER buying their own piece
+          buyer_name: "Verify seller-buyer",
+          buyer_email: email,
+          method: "mpesa",
+          amount_kes: 400,
+          status: "pending",
+          provider_ref: ownRef,
+          product_snapshot: {},
+        })
+        .select("id")
+        .single();
+      if (ownOErr || !ownOrder) {
+        bad("create temp order (buyer = seller)", ownOErr?.message ?? "no row");
+      } else {
+        track("order", ownOrder.id);
+        // Webhook-path finalization must refuse a buyer==seller order.
+        const own = await sb.rpc("finalize_order_by_reference", {
+          p_reference: ownRef,
+          p_expected_amount: 400,
+        });
+        const refused = own.error && /CANNOT_BUY_OWN/i.test(String(own.error.message));
+        const { data: after } = await sb
+          .from("orders")
+          .select("status")
+          .eq("id", ownOrder.id)
+          .single();
+        const { data: ownPayouts } = await sb
+          .from("payouts")
+          .select("id")
+          .eq("order_id", ownOrder.id);
+        if (refused && after?.status === "pending" && (ownPayouts ?? []).length === 0) {
+          ok("self-purchase order refused by finalize_order", "CANNOT_BUY_OWN, no payout routed");
+        } else {
+          bad("self-purchase finalization", JSON.stringify({ refused, status: after?.status, payouts: ownPayouts }));
+        }
+      }
+    }
+
+    // ==================================================================
+    // 7. Backfill: no orphaned pending orders (admin-delete cleanup)
+    // ==================================================================
+    console.log("\n=== 7. no orphaned pending orders (admin-delete cleanup) ===");
+    const { data: orphans } = await sb
+      .from("orders")
+      .select("id")
+      .eq("status", "pending")
+      .is("product_id", null)
+      .limit(5);
+    if (!orphans || orphans.length === 0) {
+      ok("no pending orders with a deleted product (backfill applied)");
+    } else {
+      bad("pending orders still reference deleted products", `${orphans.length} row(s) — run migration 0021`);
     }
 
     // ==================================================================

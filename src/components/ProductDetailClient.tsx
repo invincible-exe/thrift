@@ -37,6 +37,10 @@ export default function ProductDetailClient({
   const saved = wishlistIds?.includes(product.id) ?? false;
   const isSaved = optimistic ?? saved;
   const live = product.status === "active";
+  // Your own listing — the buy button is replaced with a plain label
+  // (sellers can't buy their own pieces; the checkout route + SQL enforce
+  // it server-side too).
+  const ownsIt = Boolean(user && product.sellerId && product.sellerId === user.id);
   // Render-pure expiry check (Date.now() is never called during render).
   const now = useNow();
   const boosted =
@@ -196,12 +200,18 @@ export default function ProductDetailClient({
           {live ? (
             <>
               <div className="mt-6 flex flex-wrap gap-2">
-                <button
-                  onClick={() => openCheckout(product)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-accent px-6 py-4 text-sm font-bold uppercase tracking-wider text-white transition hover:bg-accent-deep active:scale-[0.99] sm:flex-none sm:px-10"
-                >
-                  Buy now · {formatKes(product.priceKes)}
-                </button>
+                {ownsIt ? (
+                  <div className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-sand px-6 py-4 text-sm font-bold uppercase tracking-wider text-ink-soft sm:flex-none sm:px-10">
+                    This is your piece
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => openCheckout(product)}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-accent px-6 py-4 text-sm font-bold uppercase tracking-wider text-white transition hover:bg-accent-deep active:scale-[0.99] sm:flex-none sm:px-10"
+                  >
+                    Buy now · {formatKes(product.priceKes)}
+                  </button>
+                )}
                 <button
                   onClick={handleSave}
                   aria-label={isSaved ? "Remove from saved" : "Save piece"}
@@ -210,9 +220,11 @@ export default function ProductDetailClient({
                   {isSaved ? "❤️" : "🤍"}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-ink-soft">
-                Pay with M-Pesa STK push or card — secured server-side. First payment wins.
-              </p>
+              {!ownsIt && (
+                <p className="mt-2 text-xs text-ink-soft">
+                  Pay with M-Pesa STK push or card — secured server-side. First payment wins.
+                </p>
+              )}
 
               <div className="mt-5 flex flex-wrap gap-2">
                 <a

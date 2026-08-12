@@ -52,6 +52,10 @@ export default function ProductCard({ product }: { product: Product }) {
     { scope: artRef }
   );
 
+  // Your own listing — no Buy button (sellers can't buy their own pieces;
+  // the checkout route + purchase SQL enforce it server-side too).
+  const ownsIt = Boolean(user && product.sellerId && product.sellerId === user.id);
+
   const saved = wishlistIds?.includes(product.id) ?? false;
   const [optimistic, setOptimistic] = useState<boolean | null>(null);
   const [resetKey, setResetKey] = useState("");
@@ -121,6 +125,11 @@ export default function ProductCard({ product }: { product: Product }) {
               Community
             </span>
           )}
+          {ownsIt && (
+            <span className="rounded-full bg-paper/90 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-ink backdrop-blur">
+              Yours
+            </span>
+          )}
           {product.imageUrls && product.imageUrls.length > 1 && (
             <button
               onClick={(e) => {
@@ -159,15 +168,21 @@ export default function ProductCard({ product }: { product: Product }) {
         )}
 
         <div className="absolute inset-x-3 bottom-3 z-10 translate-y-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              openCheckout(product);
-            }}
-            className="w-full rounded-full bg-ink/90 py-3 text-sm font-bold uppercase tracking-wider text-cream backdrop-blur transition hover:bg-accent"
-          >
-            Buy now · {formatKes(product.priceKes)}
-          </button>
+          {ownsIt ? (
+            <div className="w-full rounded-full bg-paper/85 py-3 text-center text-sm font-bold uppercase tracking-wider text-ink-soft backdrop-blur">
+              Your piece
+            </div>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openCheckout(product);
+              }}
+              className="w-full rounded-full bg-ink/90 py-3 text-sm font-bold uppercase tracking-wider text-cream backdrop-blur transition hover:bg-accent"
+            >
+              Buy now · {formatKes(product.priceKes)}
+            </button>
+          )}
         </div>
       </div>
 
@@ -204,12 +219,14 @@ export default function ProductCard({ product }: { product: Product }) {
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           <p className="whitespace-nowrap font-display text-lg font-extrabold">{formatKes(product.priceKes)}</p>
-          <button
-            onClick={() => openCheckout(product)}
-            className="rounded-full bg-ink px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-cream transition hover:bg-accent md:hidden"
-          >
-            Buy
-          </button>
+          {!ownsIt && (
+            <button
+              onClick={() => openCheckout(product)}
+              className="rounded-full bg-ink px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-cream transition hover:bg-accent md:hidden"
+            >
+              Buy
+            </button>
+          )}
         </div>
       </div>
 

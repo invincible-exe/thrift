@@ -113,6 +113,14 @@ export async function POST(req: Request) {
   if (product.status !== "active") {
     return NextResponse.json({ error: "PIECE_SOLD" }, { status: 409 });
   }
+  // Sellers can't buy their own pieces (also enforced in the purchase SQL —
+  // this is the fast, friendly gate).
+  if (product.seller_id && product.seller_id === user.id) {
+    return NextResponse.json(
+      { error: "CANNOT_BUY_OWN", message: "You can't buy your own piece." },
+      { status: 403 }
+    );
+  }
   const amount = product.price_kes;
   if (!Number.isInteger(amount) || amount <= 0) {
     return NextResponse.json({ error: "INVALID_PRICE" }, { status: 500 });

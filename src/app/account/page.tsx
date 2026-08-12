@@ -717,6 +717,9 @@ function OrderCard({
   }, [uid, order.id]);
 
   const held = Boolean(order.escrowHeldAt && !order.receiptConfirmedAt && !order.cancelledAt);
+  // Never-paid orders (abandoned checkout / payment failed / listing removed)
+  // get NO meetup UI — no chat prompt, no pickup spot, no actions.
+  const paid = Boolean(order.completedAt || order.escrowHeldAt || order.receiptConfirmedAt);
   const noShowReady = Boolean(
     held &&
       !order.disputedAt &&
@@ -731,7 +734,11 @@ function OrderCard({
         ? { label: "Received ✓", cls: "bg-lime text-ink" }
         : held
           ? { label: "Awaiting pickup", cls: "bg-amber-400 text-ink" }
-          : { label: "Paid", cls: "bg-sand text-ink-soft" };
+          : order.status === "failed"
+            ? { label: "Payment failed", cls: "bg-sand text-ink-soft" }
+            : order.status === "pending"
+              ? { label: "Payment not completed", cls: "bg-sand text-ink-soft" }
+              : { label: "Paid", cls: "bg-sand text-ink-soft" };
 
   const submitDispute = async () => {
     if (disputeBusy) return;
@@ -820,7 +827,7 @@ function OrderCard({
         </div>
       </div>
 
-      {!order.cancelledAt && (
+      {!order.cancelledAt && paid && (
         <div className="mt-4 space-y-3 border-t border-line pt-3">
           <div className="flex items-start gap-2 rounded-xl bg-sand/60 px-3 py-2.5">
             <span className="text-base">📍</span>
