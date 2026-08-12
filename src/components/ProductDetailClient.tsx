@@ -107,7 +107,7 @@ export default function ProductDetailClient({
               className="object-cover"
             />
             {boosted && (
-              <span className="absolute left-4 top-4 rounded-full bg-amber-400 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-ink shadow-sm">
+              <span className="absolute left-4 top-4 rounded-full bg-amber-400 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-lime-ink shadow-sm">
                 Boosted ⚡
               </span>
             )}
@@ -196,7 +196,7 @@ export default function ProductDetailClient({
               </Link>
             )}
             {product.sellerVerified && (
-              <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-ink">
+              <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-lime-ink">
                 ✓ Verified seller
               </span>
             )}

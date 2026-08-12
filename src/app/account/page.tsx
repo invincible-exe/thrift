@@ -328,7 +328,7 @@ function SellerVerificationCard({
   if (verification.sellerVerified) {
     return (
       <div className="flex items-start gap-3 rounded-2xl border border-lime/60 bg-lime/15 p-4">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-lime text-sm font-black text-ink">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-lime text-sm font-black text-lime-ink">
           ✓
         </span>
         <div>
@@ -597,7 +597,7 @@ function PayoutRow({
         <span
           className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
             p.status === "paid"
-              ? "bg-lime text-ink"
+              ? "bg-lime text-lime-ink"
               : p.status === "failed"
                 ? "bg-sand text-ink-soft"
                 : p.status === "escrow"
@@ -711,7 +711,7 @@ function ClosetCard({
           <span
             className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
               l.status === "sold"
-                ? "bg-lime text-ink"
+                ? "bg-lime text-lime-ink"
                 : l.status === "pending"
                   ? "bg-accent-soft text-accent"
                   : "bg-paper/90 text-ink backdrop-blur"
@@ -722,7 +722,7 @@ function ClosetCard({
           {boosted && (
             <span
               title={`Pinned to the top of the feed until ${formatDate(boosted)}`}
-              className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-ink"
+              className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-lime-ink"
             >
               Boosted ⚡
             </span>
@@ -826,9 +826,9 @@ function OrderCard({
     : order.disputedAt
       ? { label: "Dispute under review", cls: "bg-accent-soft text-accent" }
       : order.receiptConfirmedAt
-        ? { label: "Received ✓", cls: "bg-lime text-ink" }
+        ? { label: "Received ✓", cls: "bg-lime text-lime-ink" }
         : held
-          ? { label: "Awaiting pickup", cls: "bg-amber-400 text-ink" }
+          ? { label: "Awaiting pickup", cls: "bg-amber-400 text-lime-ink" }
           : order.status === "failed"
             ? { label: "Payment failed", cls: "bg-sand text-ink-soft" }
             : order.status === "pending"
@@ -963,7 +963,7 @@ function OrderCard({
               <button
                 onClick={() => onConfirm(order.id)}
                 disabled={confirmingId === order.id}
-                className="rounded-full bg-lime px-4 py-1.5 text-[11px] font-bold text-ink transition hover:brightness-95 disabled:opacity-50"
+                className="rounded-full bg-lime px-4 py-1.5 text-[11px] font-bold text-lime-ink transition hover:brightness-95 disabled:opacity-50"
               >
                 {confirmingId === order.id ? "Confirming…" : "I received it ✓"}
               </button>

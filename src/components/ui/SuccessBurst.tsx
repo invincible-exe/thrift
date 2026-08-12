@@ -79,7 +79,7 @@ export default function SuccessBurst({
 
       <div className="relative">
         <span className="sb-ring pointer-events-none absolute inset-0 rounded-full bg-lime/70" />
-        <span className="sb-check relative flex h-20 w-20 items-center justify-center rounded-full bg-lime text-4xl text-ink">
+        <span className="sb-check relative flex h-20 w-20 items-center justify-center rounded-full bg-lime text-4xl text-lime-ink">
           ✓
         </span>
       </div>

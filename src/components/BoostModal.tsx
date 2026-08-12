@@ -266,7 +266,7 @@ export default function BoostModal({
             <button
               onClick={handlePay}
               disabled={busy}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-400 py-4 text-sm font-bold uppercase tracking-wider text-ink transition hover:bg-amber-300 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-400 py-4 text-sm font-bold uppercase tracking-wider text-lime-ink transition hover:bg-amber-300 disabled:opacity-60"
             >
               {phase === "processing" ? (
                 <>

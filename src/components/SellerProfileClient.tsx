@@ -56,7 +56,7 @@ export default function SellerProfileClient({
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-3xl font-black tracking-tight">{name}&apos;s closet</h1>
           {profile.sellerVerified && (
-            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-lime px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-ink">
+            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-lime px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-lime-ink">
               ✓ Verified seller
             </span>
           )}

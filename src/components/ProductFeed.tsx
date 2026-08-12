@@ -533,7 +533,7 @@ export default function ProductFeed() {
               }
               className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                 alertOn
-                  ? "border-amber-400 bg-amber-400 text-ink"
+                  ? "border-amber-400 bg-amber-400 text-lime-ink"
                   : "border-line bg-paper text-ink-soft hover:border-ink hover:text-ink"
               }`}
             >

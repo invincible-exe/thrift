@@ -408,7 +408,7 @@ function Dashboard() {
                     <button
                       onClick={() => run(p.id, () => approveListing(p))}
                       disabled={busyId === p.id}
-                      className="rounded-full bg-lime px-4 py-1.5 text-xs font-bold text-ink transition hover:brightness-95 disabled:opacity-50"
+                      className="rounded-full bg-lime px-4 py-1.5 text-xs font-bold text-lime-ink transition hover:brightness-95 disabled:opacity-50"
                     >
                       Approve
                     </button>
@@ -523,7 +523,7 @@ function Dashboard() {
                     <button
                       onClick={() => handleVerify(s.id, true)}
                       disabled={verifBusyId === s.id}
-                      className="rounded-full bg-lime px-4 py-1.5 text-xs font-bold text-ink transition hover:brightness-95 disabled:opacity-50"
+                      className="rounded-full bg-lime px-4 py-1.5 text-xs font-bold text-lime-ink transition hover:brightness-95 disabled:opacity-50"
                     >
                       {verifBusyId === s.id ? "…" : "✓ Verify seller"}
                     </button>
@@ -677,7 +677,7 @@ function Dashboard() {
                     </div>
                     <span
                       className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
-                        r.status === "open" ? "bg-accent-soft text-accent" : "bg-lime text-ink"
+                        r.status === "open" ? "bg-accent-soft text-accent" : "bg-lime text-lime-ink"
                       }`}
                     >
                       {r.status === "open" ? "Open" : "Resolved"}
@@ -788,7 +788,7 @@ function Dashboard() {
                 <span
                   className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                     p.status === "paid"
-                      ? "bg-lime text-ink"
+                      ? "bg-lime text-lime-ink"
                       : p.status === "failed"
                         ? "bg-sand text-ink-soft"
                         : p.status === "escrow"
@@ -904,7 +904,7 @@ function Dashboard() {
                     </div>
                     <span
                       className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
-                        open ? "bg-accent-soft text-accent" : "bg-lime text-ink"
+                        open ? "bg-accent-soft text-accent" : "bg-lime text-lime-ink"
                       }`}
                     >
                       {open ? "Open" : "Resolved"}
@@ -915,7 +915,7 @@ function Dashboard() {
                       <button
                         onClick={() => handleResolveDispute(d.id, "release", "Seller delivered")}
                         disabled={disputeBusyId === d.id}
-                        className="rounded-full bg-lime px-4 py-1.5 text-xs font-bold text-ink transition hover:brightness-95 disabled:opacity-50"
+                        className="rounded-full bg-lime px-4 py-1.5 text-xs font-bold text-lime-ink transition hover:brightness-95 disabled:opacity-50"
                       >
                         Seller delivered. Release
                       </button>
@@ -972,7 +972,7 @@ function Dashboard() {
                 <span
                   className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                     p.status === "paid"
-                      ? "bg-lime text-ink"
+                      ? "bg-lime text-lime-ink"
                       : p.status === "failed"
                         ? "bg-sand text-ink-soft"
                         : "bg-accent-soft text-accent"
@@ -1042,7 +1042,7 @@ function Dashboard() {
                     p.status === "pending"
                       ? "bg-accent-soft text-accent"
                       : p.source === "community"
-                        ? "bg-lime text-ink"
+                        ? "bg-lime text-lime-ink"
                         : "bg-sand text-ink-soft"
                   }`}
                 >
@@ -1051,7 +1051,7 @@ function Dashboard() {
                 {p.status === "active" && p.boostExpiresAt && p.boostExpiresAt.getTime() > now && (
                   <span
                     title={`Boosted until ${formatDate(p.boostExpiresAt)}`}
-                    className="shrink-0 rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-ink"
+                    className="shrink-0 rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-lime-ink"
                   >
                     Boosted ⚡
                   </span>

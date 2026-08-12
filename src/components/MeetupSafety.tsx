@@ -232,7 +232,7 @@ export default function MeetupSafety({
         {myCheckin ? (
           <span
             title={`Checked in ${formatDate(myCheckin.checkedInAt)}`}
-            className="rounded-full bg-lime px-3 py-1 text-[11px] font-bold text-ink"
+            className="rounded-full bg-lime px-3 py-1 text-[11px] font-bold text-lime-ink"
           >
             You&apos;re here ✓
           </span>

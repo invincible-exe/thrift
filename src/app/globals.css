@@ -15,6 +15,10 @@
   --accent-deep: #e04300;
   --accent-soft: #ffe3d4;
   --lime: #d9f24d;
+  /* Text color that must stay DARK in both themes: lime/amber fills are
+     bright in dark mode too, but `ink` flips light there, so badges and
+     buttons on those fills would become unreadable. */
+  --lime-ink: #16130f;
   color-scheme: light;
 }
 
@@ -45,6 +49,7 @@
   --color-accent-deep: var(--accent-deep);
   --color-accent-soft: var(--accent-soft);
   --color-lime: var(--lime);
+  --color-lime-ink: var(--lime-ink);
 
   --font-display: var(--font-archivo);
   --font-sans: var(--font-inter);

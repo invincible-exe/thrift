@@ -111,12 +111,12 @@ export default function ProductCard({ product }: { product: Product }) {
             1-of-1
           </span>
           {product.isNewDrop && (
-            <span className="rounded-full bg-lime px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-ink">
+            <span className="rounded-full bg-lime px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-lime-ink">
               New
             </span>
           )}
           {product.isBoosted && (
-            <span className="rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-ink shadow-sm">
+            <span className="rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-lime-ink shadow-sm">
               Boosted ⚡
             </span>
           )}
@@ -213,7 +213,7 @@ export default function ProductCard({ product }: { product: Product }) {
                 {product.sellerVerified && (
                   <span
                     title="Verified seller"
-                    className="rounded-full bg-lime px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-ink"
+                    className="rounded-full bg-lime px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-lime-ink"
                   >
                     ✓
                   </span>
