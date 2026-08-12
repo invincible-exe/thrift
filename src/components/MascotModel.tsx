@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { getDeviceTier } from "@/lib/device";
+import { MODEL_FULL, MODEL_LITE, MODEL_MOBILE } from "@/lib/model-urls";
 
 /**
  * The hero model (public/models/modelToUse.glb): the 6 fashion characters as
@@ -49,39 +50,33 @@ import { getDeviceTier } from "@/lib/device";
  * no matter how the scene is lit. A standard material actually responds to
  * the ambient/directional lights and the environment map.
  */
-// Serve the models from Supabase Storage (public bucket) when the project
-// URL is configured — the files live on Supabase's CDN, not behind the app
-// server, so a tunnel's throughput cap can't truncate them mid-download.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, "") ?? "";
-const modelsBase = supabaseUrl
-  ? `${supabaseUrl}/storage/v1/object/public/models`
-  : "";
-const local = (name: string) => `/models/${name}`;
-const MODEL_FULL = modelsBase ? `${modelsBase}/modelToUse.glb` : local("modelToUse.glb");
-const MODEL_MOBILE = modelsBase
-  ? `${modelsBase}/modelToUse-mobile.glb`
-  : local("modelToUse-mobile.glb");
-const MODEL_LITE = modelsBase
-  ? `${modelsBase}/modelToUse-lite.glb`
-  : local("modelToUse-lite.glb");
+// Model URLs come from src/lib/model-urls.ts (pure module — see its header
+// for why it's shared with the retry boundary). The preloads below stay
+// here: they're the side effects that kick off the fetches, and they only
+// ever run when this chunk loads (Hero3D is gated behind page-ready in
+// CyberCard, so these fire after the load-critical window, not during it).
 
 /**
  * Which variant this device should load, from the shared device tier
- * (src/lib/device.ts): lite → the 0.9MB decimated model, mobile → the
- * 0.9MB lite model too, full → the ~7MB lineup. The static tier never
- * mounts the 3D at all (CyberCard shows the poster), so it never reaches
- * this point. The ?model=lite|mobile|full query override still wins for
- * testing.
+ * (src/lib/device.ts) — each tier gets the model its hardware can actually
+ * push:
+ *  - lite tier (save-data / 2G / ≤2GB RAM / ≤2 cores / weak GPU) → the
+ *    0.9MB decimated model.
+ *  - mobile tier (3G / ≤4GB RAM / touch / small viewport — i.e. phones)
+ *    → the 3.6MB mobile variant, decimated specifically for phone GPUs.
+ *  - full tier (everything else — desktops, high-end machines) → the
+ *    ~7MB lineup.
+ * The static tier never mounts the 3D at all (CyberCard shows the poster),
+ * so it never reaches this point. The ?model=lite|mobile|full query
+ * override still wins for testing.
  *
- * Phones were originally served the 3.6MB "mobile" variant via a
- * progressive lite→mobile upgrade. The double download (4.5MB on a phone
- * connection) plus the mid-session mount of the heavier mesh made some
- * phones' renderers hiccup — a blank/white flash in the hero that then
- * recovered. The lite model is decimated specifically for weak GPUs and
- * looks near-identical at phone pixel ratios, so phones now stay on it
- * and skip the upgrade entirely (one 0.9MB fetch, no swap). Desktop still
- * gets the lite→full progressive upgrade, where it saves ~10s of first
- * paint with no stability risk.
+ * Phones load their device model DIRECTLY — no lite-first progressive
+ * upgrade. The old lite→mobile mid-session swap (a 4.5MB total download
+ * plus a heavy mesh mount + vertex-color rebuild on the phone's GPU) made
+ * some phones' renderers hiccup with a blank/white flash. A single
+ * straight 3.6MB fetch avoids that entirely. Desktop keeps the lite→full
+ * progressive upgrade, where it saves ~10s of first paint with no
+ * stability risk.
  */
 function modelUrl(): string {
   if (typeof window !== "undefined") {
@@ -92,7 +87,8 @@ function modelUrl(): string {
   }
   if (typeof navigator === "undefined") return MODEL_FULL; // SSR-safe
   const tier = getDeviceTier();
-  if (tier === "lite" || tier === "mobile") return MODEL_LITE;
+  if (tier === "lite") return MODEL_LITE;
+  if (tier === "mobile") return MODEL_MOBILE;
   return MODEL_FULL;
 }
 
@@ -120,22 +116,51 @@ const FLOAT_HOVER = 0.06; // keeps the feet airborne, never below the ground pla
 const FLOAT_AMPLITUDE = 0.1;
 const FLOAT_SPEED = 1.1;
 
-export function MascotModel() {
-  // Decided once per mount — deterministic per device, so the preload below
-  // always matches what this component renders.
-  const [targetUrl] = useState(modelUrl);
-  // Progressive loading: render the lite model (~1MB, streams in a couple of
-  // seconds even on 3G) the moment the component mounts, then swap in the
-  // device's full tier (mobile 3.6MB / full 7.2MB) once it has finished
-  // downloading in the background. The hero never sits as an empty hole
-  // while a large GLB crawls down the wire — on desktop the lineup appears
-  // ~10s sooner, then silently upgrades in place.
-  const [url, setUrl] = useState(() => MODEL_LITE);
+// If the primary model fetch neither resolves nor rejects (a stalled
+// connection on flaky mobile data), the hero would sit on the loading glow
+// forever — the one failure a plain error boundary can't catch. StallKicker
+// is the INNER Suspense's fallback, so it only renders while the model is
+// suspended: it arms a stall timer and, if the model still hasn't arrived
+// when it fires, throws — the throw bubbles to ModelRetryBoundary, which
+// clears the loader cache and re-attempts the whole 3D. The moment the
+// model loads, the fallback unmounts and the timer is cleared, so a healthy
+// load never trips it.
+//
+// The timeout scales with the model's size so a slow-but-real 3G download
+// of the 3.6MB variant isn't mistaken for a stall.
+function stallTimeoutFor(url: string): number {
+  if (url === MODEL_FULL) return 45000;
+  // Mobile-tier devices can be on real 3G, where 3.6MB legitimately takes
+  // ~45s — the stall watchdog must not mistake a slow-but-real download
+  // for a dead connection (a false trigger would abort it and re-download).
+  if (url === MODEL_MOBILE) return 45000;
+  return 15000;
+}
+
+function StallKicker({ url, timeout }: { url: string; timeout: number }) {
+  const [stalled, setStalled] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setStalled(true), timeout);
+    return () => clearTimeout(t);
+  }, [url, timeout]);
+  if (stalled) throw new Error(`Hero model fetch stalled: ${url}`);
+  return null;
+}
+
+// The actual model renderer: fetches the GLB (via useGLTF, which suspends
+// while it downloads), bakes the per-character charcoal tones, and bobs the
+// lineup gently. Split out of MascotModel so the fetch can sit inside its
+// own Suspense boundary with the StallKicker watchdog as the fallback.
+function ModelScene({
+  url,
+  groupRef,
+}: {
+  url: string;
+  groupRef: RefObject<THREE.Group | null>;
+}) {
   const { scene } = useGLTF(url);
-  const groupRef = useRef<THREE.Group>(null);
   // Respect the site-wide reduced-motion preference (checked once on mount).
   const reducedMotion = useRef(false);
-
   useLayoutEffect(() => {
     reducedMotion.current =
       typeof window !== "undefined" &&
@@ -213,6 +238,28 @@ export function MascotModel() {
       Math.sin(clock.elapsedTime * FLOAT_SPEED) * FLOAT_AMPLITUDE;
   });
 
+  return (
+    <group ref={groupRef} position={[0, FEET_Y, 0]}>
+      <primitive object={scene} />
+    </group>
+  );
+}
+
+export function MascotModel() {
+  // Decided once per mount — deterministic per device, so the preload below
+  // always matches what this component renders.
+  const [targetUrl] = useState(modelUrl);
+  // Every tier except full loads its device model DIRECTLY — one fetch, no
+  // mid-session swap (the old lite→mobile upgrade flashed some phones).
+  // Full-tier desktop keeps the progressive path: the lite lineup (~1MB,
+  // streams in a couple of seconds even on 3G) paints immediately, then
+  // silently upgrades to the 7MB model once it has finished downloading in
+  // the background — the hero never sits as an empty hole on desktop.
+  const [url, setUrl] = useState(() =>
+    targetUrl === MODEL_FULL ? MODEL_LITE : targetUrl
+  );
+  const groupRef = useRef<THREE.Group>(null);
+
   // Upgrade the visible tier once the device's target model has finished
   // loading (module-scope preload already started the fetch). TierUpgrader
   // suspends until the loader cache holds the target — then we swap the URL,
@@ -223,9 +270,9 @@ export function MascotModel() {
   // whose target tier IS the lite model.
   return (
     <>
-      <group ref={groupRef} position={[0, FEET_Y, 0]}>
-        <primitive object={scene} />
-      </group>
+      <Suspense fallback={<StallKicker url={url} timeout={stallTimeoutFor(url)} />}>
+        <ModelScene url={url} groupRef={groupRef} />
+      </Suspense>
       {url !== targetUrl && (
         <Suspense fallback={null}>
           <TierUpgrader url={targetUrl} onUpgraded={() => setUrl(targetUrl)} />
@@ -243,10 +290,11 @@ function TierUpgrader({ url, onUpgraded }: { url: string; onUpgraded: () => void
   return null;
 }
 
-// Kick off the fetches for this device before the hero renders: the lite
-// model (always the first paint — instant progressive-load base) and the
-// device's target tier (the background upgrade). Safe at module scope:
-// Hero3D is dynamically imported with ssr:false, so this only ever
-// evaluates in the browser.
-useGLTF.preload(MODEL_LITE);
-useGLTF.preload(modelUrl());
+// Kick off the fetch for this device's model before the hero renders. Only
+// full-tier devices additionally preload the lite model (their progressive
+// first-paint base); every other tier downloads exactly one variant. Safe
+// at module scope: Hero3D is dynamically imported with ssr:false, so this
+// only ever evaluates in the browser.
+const tierModel = modelUrl();
+useGLTF.preload(tierModel);
+if (tierModel === MODEL_FULL) useGLTF.preload(MODEL_LITE);

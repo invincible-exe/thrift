@@ -4,7 +4,9 @@ import { Suspense, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import ErrorBoundary from "./ui/ErrorBoundary";
+import ModelRetryBoundary, { ModelGlow } from "./ModelRetryBoundary";
 import { getDeviceTier } from "@/lib/device";
+import { usePageReady } from "@/lib/use-page-ready";
 import styles from "./CyberCard.module.css";
 
 const Hero3D = dynamic(() => import("./Hero3D"), {
@@ -99,9 +101,25 @@ export default function CyberCard() {
   const rotation = useRef({ x: 0, y: 0 });
   const dragStart = useRef<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
-  // Decided once on mount (client-only, so no SSR mismatch): only the
-  // non-static tiers mount the 3D; everything else shows the poster.
-  const [render3D] = useState(() => getDeviceTier() !== "static");
+
+  // The 3D stack (three.js chunk download, WebGL context creation, GLB
+  // fetch) only starts once the page has finished loading — see
+  // usePageReady. Creating WebGL contexts / starting big fetches during the
+  // load window is a known mobile failure mode (iOS Safari in particular):
+  // the context can fail to create and in-flight fetches can be aborted,
+  // which is exactly the "works on refresh but not first load" symptom.
+  const pageReady = usePageReady();
+  // Tier is decided exactly once, and only once the page has settled — the
+  // WebGL probe inside getDeviceTier can itself fail during the load window
+  // (→ wrongly "static") and succeed a moment later, so trusting it during
+  // load would hide the 3D from working phones. Re-checking after pageReady
+  // turns a false-static phone into a working 3D hero with no user action.
+  // Render-phase adjustment (the same keyed pattern as the feed's near-me
+  // auto-seed); the null guard keeps it to a single evaluation.
+  const [render3D, setRender3D] = useState<boolean | null>(null);
+  if (pageReady && render3D === null) {
+    setRender3D(getDeviceTier() !== "static");
+  }
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     dragStart.current = { x: e.clientX, y: e.clientY };
@@ -173,23 +191,24 @@ export default function CyberCard() {
             {/* The model renders in the display window between header and
                 footer — top padding keeps it clear of the card's edge. If
                 the device can't run WebGL (or is low-end), the static
-                poster shows instead of the heavy model; any runtime error
-                is contained by the boundary so the page never dies. */}
+                poster shows instead of the heavy model. Two layers of
+                protection keep a first-load hiccup from looking broken:
+                 - the Hero3D chunk (three.js + the GLB fetches) doesn't
+                   even START until the page has finished loading, and
+                 - ModelRetryBoundary re-mounts the 3D after any failure
+                   (clearing the poisoned loader cache first), so a single
+                   aborted model download self-heals instead of needing a
+                   refresh; only after retries does the poster appear. */}
             <div className={styles.modelSlot}>
-              {render3D ? (
+              {!pageReady ? (
+                <ModelGlow />
+              ) : render3D === true ? (
                 <ErrorBoundary fallback={<StaticPoster />}>
-                  <Suspense
-                    fallback={
-                      // While the model streams in, show a soft studio glow
-                      // instead of an empty window — the spotlight behind
-                      // the slot makes it look intentional, not broken.
-                      <div className="flex h-full w-full items-center justify-center">
-                        <div className="h-24 w-24 animate-pulse rounded-full bg-gradient-to-br from-lime/30 via-accent/20 to-transparent blur-2xl" />
-                      </div>
-                    }
-                  >
-                    <Hero3D interactive={false} rotationTarget={rotation} />
-                  </Suspense>
+                  <ModelRetryBoundary>
+                    <Suspense fallback={<ModelGlow />}>
+                      <Hero3D interactive={false} rotationTarget={rotation} />
+                    </Suspense>
+                  </ModelRetryBoundary>
                 </ErrorBoundary>
               ) : (
                 <StaticPoster />
