@@ -33,7 +33,8 @@ import { formatDate, formatKes } from "@/lib/format";
 import { CATEGORIES, CONDITIONS } from "@/lib/constants";
 import { useNow } from "@/lib/use-now";
 import LocationPicker from "@/components/LocationPicker";
-import type { Location, ProductCategory } from "@/lib/types";
+import ProductGalleryModal from "@/components/ProductGalleryModal";
+import type { Location, Product, ProductCategory } from "@/lib/types";
 
 function AccessDenied() {
   const { openAuth } = useShop();
@@ -81,6 +82,10 @@ function Dashboard() {
   // Inline rejection-note panel: which piece is open, and the note draft.
   const [rejectOpenId, setRejectOpenId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState("");
+  // Full photo gallery for the piece being reviewed (pending queue + all
+  // pieces) — clicking the thumbnail opens every uploaded shot, so the
+  // moderation call is made with the actual photos in front of you.
+  const [gallery, setGallery] = useState<{ product: Product; index: number } | null>(null);
 
   // 24h auto-resolve sweep: escrowed seller payouts whose window elapsed flip
   // to pending and are auto-paid. Safe for any user, runs on load.
@@ -349,9 +354,24 @@ function Dashboard() {
                 className="rounded-2xl border border-accent/40 bg-accent-soft/50 p-3"
               >
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-sand">
-                    <Image src={p.imageUrl} alt={p.title} fill sizes="48px" className="object-cover" />
-                  </div>
+                  <button
+                    onClick={() => setGallery({ product: p, index: 0 })}
+                    disabled={!isValidPhotoUrl(p.imageUrl)}
+                    aria-label={`View photos of ${p.title}`}
+                    title="View photos"
+                    className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sand transition hover:ring-2 hover:ring-accent disabled:cursor-default disabled:hover:ring-0"
+                  >
+                    {isValidPhotoUrl(p.imageUrl) ? (
+                      <Image src={p.imageUrl} alt={p.title} fill sizes="56px" className="object-cover" />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center text-xl">🧵</span>
+                    )}
+                    {photoCount(p) > 1 && (
+                      <span className="absolute bottom-0 right-0 rounded-tl-lg bg-ink/75 px-1.5 py-0.5 text-[9px] font-extrabold leading-none text-cream">
+                        📷 {photoCount(p)}
+                      </span>
+                    )}
+                  </button>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold">{p.title}</p>
                     <p className="text-xs text-ink-soft">
@@ -870,9 +890,24 @@ function Dashboard() {
           <ul className="space-y-3">
             {products.map((p) => (
               <li key={p.id} className="flex items-center gap-3 rounded-2xl border border-line bg-paper p-3">
-                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-sand">
-                  <Image src={p.imageUrl} alt={p.title} fill sizes="48px" className="object-cover" />
-                </div>
+                <button
+                  onClick={() => setGallery({ product: p, index: 0 })}
+                  disabled={!isValidPhotoUrl(p.imageUrl)}
+                  aria-label={`View photos of ${p.title}`}
+                  title="View photos"
+                  className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sand transition hover:ring-2 hover:ring-accent disabled:cursor-default disabled:hover:ring-0"
+                >
+                  {isValidPhotoUrl(p.imageUrl) ? (
+                    <Image src={p.imageUrl} alt={p.title} fill sizes="56px" className="object-cover" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-xl">🧵</span>
+                  )}
+                  {photoCount(p) > 1 && (
+                    <span className="absolute bottom-0 right-0 rounded-tl-lg bg-ink/75 px-1.5 py-0.5 text-[9px] font-extrabold leading-none text-cream">
+                      📷 {photoCount(p)}
+                    </span>
+                  )}
+                </button>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold">{p.title}</p>
                   <p className="text-xs text-ink-soft">
@@ -915,8 +950,27 @@ function Dashboard() {
           </p>
         ) : null}
       </div>
+
+      {/* Full photo gallery for the piece under review */}
+      {gallery && (
+        <ProductGalleryModal
+          product={gallery.product}
+          initialIndex={gallery.index}
+          onClose={() => setGallery(null)}
+        />
+      )}
     </section>
   );
+}
+
+/** Number of uploaded photos for a product (1 = just the cover). */
+function photoCount(p: Product): number {
+  return p.imageUrls && p.imageUrls.length > 0 ? p.imageUrls.length : 1;
+}
+
+/** Guard so a missing/placeholder URL renders a tile instead of crashing <Image>. */
+function isValidPhotoUrl(src: string): boolean {
+  return /^https?:\/\//i.test(src);
 }
 
 const EMPTY_PIECE = {
