@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { siteUrl } from "@/lib/site-url";
-import { formatKes } from "@/lib/format";
+import { formatKes, safeJsonLd } from "@/lib/format";
 import type { Product } from "@/lib/types";
 import ProductDetailClient from "@/components/ProductDetailClient";
 
@@ -121,7 +121,7 @@ export default async function ProductPage({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
       <ProductDetailClient product={product} canonicalUrl={siteUrl(`/product/${product.id}`)} />
     </>
