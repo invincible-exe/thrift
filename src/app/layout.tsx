@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Archivo, Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
+import { siteUrl } from "@/lib/site-url";
 import ScrollProgress from "@/components/ui/ScrollProgress";
 import FloatingContact from "@/components/ui/FloatingContact";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
@@ -27,6 +28,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: "10/10 Thrifts | Premium Curated Thrift",
   description:
     "1-of-1 premium pieces, no doubles ever. Browse free, pay with M-Pesa or bank transfer. Sell your fits for 90% of the sale.",

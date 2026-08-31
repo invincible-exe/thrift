@@ -115,7 +115,9 @@ export async function generateMetadata({
       url,
       siteName: "10/10 Thrifts",
       type: "profile",
-      images: products[0]?.imageUrl ? [{ url: products[0].imageUrl, alt: name }] : undefined,
+      images: products[0]?.imageUrl
+        ? [{ url: products[0].imageUrl, alt: `${name}'s closet`, width: 1200, height: 630 }]
+        : undefined,
     },
     twitter: {
       card: products[0]?.imageUrl ? "summary_large_image" : "summary",

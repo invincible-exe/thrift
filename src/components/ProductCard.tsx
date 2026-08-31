@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { Product } from "@/lib/types";
 import { formatKes } from "@/lib/format";
 import { useShop } from "@/context/ShopContext";
@@ -12,8 +12,14 @@ import { gsap, useGSAP } from "@/lib/gsap";
 import RatingStars from "./ui/RatingStars";
 import ProductGalleryModal from "./ProductGalleryModal";
 
-export default function ProductCard({ product }: { product: Product }) {
-  const { openCheckout, gateAction, authOpen } = useShop();
+export default function ProductCard({
+  product,
+  onShare,
+}: {
+  product: Product;
+  onShare?: () => void;
+}) {
+  const { openCheckout, gateAction, authOpen, showToast } = useShop();
   const { user } = useAuth();
   const wishlistIds = useWishlistIds(user?.id ?? null);
   const artRef = useRef<HTMLDivElement>(null);
@@ -60,6 +66,27 @@ export default function ProductCard({ product }: { product: Product }) {
   const [optimistic, setOptimistic] = useState<boolean | null>(null);
   const [resetKey, setResetKey] = useState("");
   const [galleryOpen, setGalleryOpen] = useState(false);
+
+  const handleShare = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (onShare) {
+        onShare();
+      } else {
+        // Default: copy product link
+        const url = `${window.location.origin}/product/${product.id}`;
+        if (navigator.share) {
+          navigator.share({ title: product.title, url }).catch(() => {});
+        } else {
+          navigator.clipboard.writeText(url).then(() => {
+            showToast("Link copied. Share it anywhere.");
+          }).catch(() => {});
+        }
+      }
+    },
+    [onShare, product.id, product.title, showToast]
+  );
 
   // Drop the optimistic state when the product changes or a pending
   // sign-in (for saving) is cancelled — render-time adjustment, no effect.
@@ -152,6 +179,13 @@ export default function ProductCard({ product }: { product: Product }) {
           className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-paper/85 text-lg backdrop-blur transition hover:scale-110 active:scale-95"
         >
           {isSaved ? "❤️" : "🤍"}
+        </button>
+        <button
+          onClick={handleShare}
+          aria-label="Share this piece"
+          className="absolute right-3 top-14 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-paper/85 text-sm backdrop-blur transition hover:scale-110 active:scale-95"
+        >
+          📤
         </button>
 
         {product.imageUrls && product.imageUrls.length > 1 && (

@@ -246,6 +246,16 @@ export default function ProductDetailClient({
                 >
                   {copied ? "✓ Copied" : "🔗 Copy link"}
                 </button>
+                <button
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({ title: shareText, url: canonicalUrl }).catch(() => {});
+                    }
+                  }}
+                  className="rounded-full border border-line px-4 py-2 text-xs font-bold text-ink-soft transition hover:border-ink hover:text-ink"
+                >
+                  ↗ Share
+                </button>
               </div>
             </>
           ) : (

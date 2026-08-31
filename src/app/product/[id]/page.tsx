@@ -76,7 +76,7 @@ export async function generateMetadata({
       url,
       siteName: "10/10 Thrifts",
       type: "website",
-      images: [{ url: product.imageUrl, alt: product.title }],
+      images: [{ url: product.imageUrl, alt: product.title, width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",

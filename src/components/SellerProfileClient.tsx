@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { SellerProfile } from "@/app/seller/[id]/page";
 import type { Product } from "@/lib/types";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatKes } from "@/lib/format";
 import RatingStars from "./ui/RatingStars";
 import ProductCard from "./ProductCard";
 
@@ -29,6 +29,9 @@ export default function SellerProfileClient({
   const initial = (name.charAt(0) || "S").toUpperCase();
   const [copied, setCopied] = useState(false);
 
+  const shareText = `${name}'s closet on 10/10 Thrifts`; 
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText}\n${canonicalUrl}`)}`;
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(canonicalUrl);
@@ -36,6 +39,19 @@ export default function SellerProfileClient({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard blocked — nothing to do; the URL is in the address bar.
+    }
+  };
+
+  const nativeShare = async () => {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title: shareText, url: canonicalUrl });
+      } catch {
+        // User cancelled or share failed — fallback to copy.
+        copyLink();
+      }
+    } else {
+      copyLink();
     }
   };
 
@@ -73,12 +89,28 @@ export default function SellerProfileClient({
             {profile.memberSince ? ` · on 10/10 since ${formatDate(profile.memberSince)}` : ""}
           </p>
         </div>
-        <button
-          onClick={copyLink}
-          className="shrink-0 self-start rounded-full border border-line px-4 py-2 text-xs font-bold text-ink-soft transition hover:border-ink hover:text-ink sm:self-auto"
-        >
-          {copied ? "✓ Copied" : "🔗 Share this seller"}
-        </button>
+        <div className="flex shrink-0 flex-wrap gap-2 self-start sm:self-auto">
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full border border-line px-4 py-2 text-xs font-bold text-ink-soft transition hover:border-ink hover:text-ink"
+          >
+            📲 Share on WhatsApp
+          </a>
+          <button
+            onClick={copyLink}
+            className="rounded-full border border-line px-4 py-2 text-xs font-bold text-ink-soft transition hover:border-ink hover:text-ink"
+          >
+            {copied ? "✓ Copied" : "🔗 Copy link"}
+          </button>
+          <button
+            onClick={nativeShare}
+            className="rounded-full border border-line px-4 py-2 text-xs font-bold text-ink-soft transition hover:border-ink hover:text-ink"
+          >
+            ↗ Share
+          </button>
+        </div>
       </div>
 
       {/* Their rack */}
