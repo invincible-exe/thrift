@@ -3,21 +3,19 @@
  * Open Graph tags, the sitemap, robots.txt and share links.
  *
  * Resolution order:
- *  1. The Vercel production URL (e.g. 10of10thrifts.vercel.app) when deployed —
- *     SEO output must always point at the site real visitors use, never at
- *     a local tunnel.
- *  2. NEXT_PUBLIC_SITE_URL / APP_URL for local dev / phone testing (e.g. an
- *     ngrok tunnel while developing).
- *  3. localhost:3000 as a last resort.
+ *  1. NEXT_PUBLIC_SITE_URL — explicit override. Always wins when set so
+ *     shared links point at the correct domain (e.g. the working
+ *     .vercel.app URL instead of a custom domain with broken DNS).
+ *  2. VERCEL_PROJECT_PRODUCTION_URL — Vercel's auto-detected production
+ *     domain, used when no explicit override is configured.
+ *  3. APP_URL / localhost for local dev.
  */
 export function siteUrl(path = ""): string {
+  const custom = process.env.NEXT_PUBLIC_SITE_URL;
   const vercel =
     process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.NEXT_PUBLIC_VERCEL_URL;
-  const base = vercel
-    ? `https://${vercel}`
-    : process.env.NEXT_PUBLIC_SITE_URL ||
-      process.env.APP_URL ||
-      "http://localhost:3000";
+  const base = custom ||
+    (vercel ? `https://${vercel}` : process.env.APP_URL || "http://localhost:3000");
   const trimmed = base.replace(/\/+$/, "");
   return `${trimmed}${path.startsWith("/") ? path : `/${path}`}`;
 }
