@@ -64,6 +64,44 @@ export default function ProductDetailClient({
   const shareText = `${product.title}: ${formatKes(product.priceKes)} · 1-of-1 on 10/10 Thrifts`;
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText}\n${canonicalUrl}`)}`;
 
+  /** Share with photo (falls back to link-only on unsupported browsers). */
+  const shareWithPhoto = async () => {
+    if (navigator.share && navigator.canShare) {
+      try {
+        const res = await fetch(photos[index]);
+        const blob = await res.blob();
+        const ext = blob.type.includes("png") ? ".png" : ".jpg";
+        const file = new File([blob], `${product.title}${ext}`, {
+          type: blob.type,
+        });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: product.title,
+            text: shareText,
+            url: canonicalUrl,
+          });
+          return;
+        }
+      } catch {
+        // User cancelled or file share failed
+      }
+    }
+
+    // Fallback: share text + link
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: product.title, text: shareText, url: canonicalUrl });
+        return;
+      } catch {
+        // User cancelled
+      }
+    }
+
+    // Last resort: copy
+    await copyLink();
+  };
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(canonicalUrl);
@@ -247,14 +285,10 @@ export default function ProductDetailClient({
                   {copied ? "✓ Copied" : "🔗 Copy link"}
                 </button>
                 <button
-                  onClick={() => {
-                    if (navigator.share) {
-                      navigator.share({ title: shareText, url: canonicalUrl }).catch(() => {});
-                    }
-                  }}
+                  onClick={shareWithPhoto}
                   className="rounded-full border border-line px-4 py-2 text-xs font-bold text-ink-soft transition hover:border-ink hover:text-ink"
                 >
-                  ↗ Share
+                  📸 Share with photo
                 </button>
               </div>
             </>

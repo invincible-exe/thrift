@@ -73,19 +73,58 @@ export default function ProductCard({
       e.stopPropagation();
       if (onShare) {
         onShare();
-      } else {
-        // Default: copy product link
-        const url = `${window.location.origin}/product/${product.id}`;
-        if (navigator.share) {
-          navigator.share({ title: product.title, url }).catch(() => {});
-        } else {
-          navigator.clipboard.writeText(url).then(() => {
-            showToast("Link copied. Share it anywhere.");
-          }).catch(() => {});
-        }
+        return;
       }
+
+      const url = `${window.location.origin}/product/${product.id}`;
+      const text = `${product.title}: ${formatKes(product.priceKes)} · 1-of-1 on 10/10 Thrifts`;
+
+      const shareLink = async () => {
+        // Try Web Share API with file (photo) first — works on mobile
+        if (navigator.share && navigator.canShare) {
+          try {
+            const res = await fetch(product.imageUrl);
+            const blob = await res.blob();
+            const ext = blob.type.includes("png") ? ".png" : ".jpg";
+            const file = new File([blob], `${product.title}${ext}`, {
+              type: blob.type,
+            });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: product.title,
+                text,
+                url,
+              });
+              return;
+            }
+          } catch {
+            // User cancelled or file share failed — fall through
+          }
+        }
+
+        // Fallback: share with text + link (no photo)
+        if (navigator.share) {
+          try {
+            await navigator.share({ title: product.title, text, url });
+            return;
+          } catch {
+            // User cancelled — fall through to clipboard
+          }
+        }
+
+        // Last resort: copy link
+        try {
+          await navigator.clipboard.writeText(url);
+          showToast("Link copied. Share it anywhere.");
+        } catch {
+          showToast("Couldn't copy the link.");
+        }
+      };
+
+      shareLink();
     },
-    [onShare, product.id, product.title, showToast]
+    [onShare, product.id, product.title, product.imageUrl, showToast]
   );
 
   // Drop the optimistic state when the product changes or a pending
