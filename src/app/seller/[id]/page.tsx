@@ -79,8 +79,8 @@ async function fetchSellerProducts(id: string): Promise<Product[]> {
   return (data ?? []).map((r) => productFromRow(r as unknown as Row));
 }
 
-// A seller's rack changes as pieces sell — always fetch fresh.
-export const dynamic = "force-dynamic";
+// Cache seller pages for 60 s — balances freshness with snappy back-nav.
+export const revalidate = 60;
 
 export async function generateMetadata({
   params,

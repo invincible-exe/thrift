@@ -58,8 +58,7 @@ export default function ProductFeed() {
   const [sort, setSort] = useState<SortId>("newest");
   const [category, setCategory] = useState("all");
   const [nearMe, setNearMe] = useState(false);
-  // Once the buyer's area loads, the rack defaults to "Near me" — unless
-  // they've already flipped the toggle this session, which wins.
+  // No filters are auto-enabled by default. The Near-me toggle starts off.
   const [nearMeTouched, setNearMeTouched] = useState(false);
   // Standalone optional location filter (county → area, Jumia-style), separate
   // from the search panel. Purely opt-in: no profile location required.
@@ -83,20 +82,7 @@ export default function ProductFeed() {
   );
   const buyerLoc = profileLocationId ? locById.get(profileLocationId) : undefined;
 
-  // Personalized default: signed-in buyers with an area see their county's
-  // pieces first (exact area ranked top). Toggling the chip off marks it
-  // touched so it never re-enables behind their back this session. Keyed
-  // render-time adjustment (the LocationPicker pattern) — fires only when
-  // buyerLoc flips from unknown → known, never mid-session.
-  const [nearAutoSeed, setNearAutoSeed] = useState("idle");
-  const nearAuto = !nearMeTouched && buyerLoc ? "apply" : "idle";
-  if (nearAuto !== nearAutoSeed) {
-    setNearAutoSeed(nearAuto);
-    if (nearAuto === "apply") {
-      setNearMe(true);
-      setNearMeTouched(true);
-    }
-  }
+
 
   const toggleNearMe = (value: boolean) => {
     setNearMeTouched(true);
