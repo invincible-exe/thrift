@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Modal from "./ui/Modal";
 import type { Product } from "@/lib/types";
 import { formatKes } from "@/lib/format";
+import { isVideoUrl } from "@/lib/constants";
 
 /**
  * Full photo gallery for a piece — every uploaded shot, not just the cover.
@@ -69,7 +70,7 @@ export default function ProductGalleryModal({
           </button>
         </div>
 
-        {/* Stage — swipeable main photo */}
+        {/* Stage — swipeable main photo / video */}
         <div
           className="relative aspect-[4/5] w-full touch-pan-y select-none overflow-hidden rounded-2xl bg-sand"
           onPointerDown={(e) => setTouchX(e.clientX)}
@@ -82,16 +83,28 @@ export default function ProductGalleryModal({
           onPointerCancel={() => setTouchX(null)}
           onPointerLeave={() => setTouchX(null)}
         >
-          <Image
-            key={photos[index]}
-            src={photos[index]}
-            alt={`${product.title}, photo ${index + 1}`}
-            fill
-            sizes="(min-width: 768px) 48rem, 100vw"
-            quality={95}
-            className="object-cover"
-            priority
-          />
+          {isVideoUrl(photos[index]) ? (
+            <video
+              key={photos[index]}
+              src={photos[index]}
+              className="h-full w-full object-contain"
+              controls
+              playsInline
+              autoPlay
+              preload="auto"
+            />
+          ) : (
+            <Image
+              key={photos[index]}
+              src={photos[index]}
+              alt={`${product.title}, photo ${index + 1}`}
+              fill
+              sizes="(min-width: 768px) 48rem, 100vw"
+              quality={95}
+              className="object-cover"
+              priority
+            />
+          )}
 
           {!single && (
             <>
@@ -136,14 +149,23 @@ export default function ProductGalleryModal({
               <button
                 key={p}
                 onClick={() => setIndex(i)}
-                aria-label={`View photo ${i + 1}`}
+                aria-label={`View ${isVideoUrl(p) ? "video" : "photo"} ${i + 1}`}
                 className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl transition ${
                   i === index
                     ? "ring-2 ring-accent ring-offset-2 ring-offset-paper"
                     : "opacity-70 hover:opacity-100"
                 }`}
               >
-                <Image src={p} alt="" fill sizes="64px" className="object-cover" />
+                {isVideoUrl(p) ? (
+                  <video src={p} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                ) : (
+                  <Image src={p} alt="" fill sizes="64px" className="object-cover" />
+                )}
+                {isVideoUrl(p) && (
+                  <span className="absolute bottom-0.5 left-0.5 rounded bg-ink/75 px-1 py-px text-[8px] font-bold text-cream">
+                    🎬
+                  </span>
+                )}
               </button>
             ))}
           </div>

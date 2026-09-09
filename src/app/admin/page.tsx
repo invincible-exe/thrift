@@ -31,7 +31,7 @@ import {
   type UploadedImage,
 } from "@/lib/db";
 import { formatDate, formatKes } from "@/lib/format";
-import { CATEGORIES, CONDITIONS } from "@/lib/constants";
+import { CATEGORIES, CONDITIONS, MAX_VIDEO_DURATION_SEC } from "@/lib/constants";
 import { useNow } from "@/lib/use-now";
 import LocationPicker from "@/components/LocationPicker";
 import ProductGalleryModal from "@/components/ProductGalleryModal";
@@ -1106,6 +1106,8 @@ const EMPTY_PIECE = {
 };
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime", "video/ogg"]);
 
 /** Owner-only form: drops a platform piece straight onto the live feed. */
 function AddPieceForm() {
@@ -1138,17 +1140,44 @@ function AddPieceForm() {
     "w-full rounded-2xl border border-line bg-paper px-4 py-3 text-sm outline-none transition focus:border-ink";
   const labelCls = "mb-1.5 block text-xs font-bold uppercase tracking-widest text-ink-soft";
 
-  const handlePhoto = (e: ChangeEvent<HTMLInputElement>) => {
+  const handlePhoto = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/") || file.size > MAX_IMAGE_BYTES) {
+    const isVideo = VIDEO_TYPES.has(file.type) || file.type.startsWith("video/");
+    const isImage = file.type.startsWith("image/");
+    if (!isImage && !isVideo) {
+      setMessage("Use an image (JPG, PNG, WebP) or video (MP4, WebM) file.");
+      return;
+    }
+    if (isImage && file.size > MAX_IMAGE_BYTES) {
       setMessage("Use an image file under 5 MB.");
       return;
+    }
+    if (isVideo && file.size > MAX_VIDEO_BYTES) {
+      setMessage("Use a video file under 50 MB.");
+      return;
+    }
+    // Validate video duration client-side before uploading.
+    if (isVideo) {
+      const duration = await new Promise<number>((resolve) => {
+        const v = document.createElement("video");
+        v.preload = "metadata";
+        v.onloadedmetadata = () => resolve(v.duration);
+        v.onerror = () => resolve(0);
+        v.src = URL.createObjectURL(file);
+      });
+      if (duration > 0 && duration > MAX_VIDEO_DURATION_SEC) {
+        setMessage(`Videos must be ${MAX_VIDEO_DURATION_SEC}s or shorter. This one is ${Math.round(duration)}s.`);
+        return;
+      }
     }
     if (photo) URL.revokeObjectURL(photo.previewUrl);
     setPhoto({ file, previewUrl: URL.createObjectURL(file) });
     setMessage("");
   };
+
+  const isVideoFile = (file: File) =>
+    VIDEO_TYPES.has(file.type) || file.type.startsWith("video/");
 
   const clearPhoto = () => {
     if (photo) URL.revokeObjectURL(photo.previewUrl);
@@ -1307,26 +1336,35 @@ function AddPieceForm() {
             )}
           </div>
           <div>
-            <span className={labelCls}>Photo</span>
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-line bg-paper px-4 py-6 text-center transition hover:border-accent hover:bg-sand/60">
+            <span className={labelCls}>Photo</span>              <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-line bg-paper px-4 py-6 text-center transition hover:border-accent hover:bg-sand/60">
               {photo ? (
                 <div className="relative h-36 w-full overflow-hidden rounded-xl bg-sand">
-                  <Image
-                    src={photo.previewUrl}
-                    alt="Preview"
-                    fill
-                    sizes="100%"
-                    className="object-cover"
-                    unoptimized
-                  />
+                  {isVideoFile(photo.file) ? (
+                    <video
+                      src={photo.previewUrl}
+                      className="h-full w-full object-cover"
+                      muted
+                      playsInline
+                      preload="metadata"
+                    />
+                  ) : (
+                    <Image
+                      src={photo.previewUrl}
+                      alt="Preview"
+                      fill
+                      sizes="100%"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  )}
                 </div>
               ) : (
                 <>
                   <span className="text-2xl">📸</span>
-                  <span className="mt-1.5 text-xs font-bold text-ink">Tap to choose a photo</span>
+                  <span className="mt-1.5 text-xs font-bold text-ink">Tap to choose a photo or video</span>
                 </>
               )}
-              <input type="file" accept="image/*" className="sr-only" onChange={handlePhoto} />
+              <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" className="sr-only" onChange={handlePhoto} />
             </label>
             {photo && (
               <button
@@ -1334,7 +1372,7 @@ function AddPieceForm() {
                 onClick={clearPhoto}
                 className="mt-1.5 text-xs font-bold text-accent underline-offset-2 hover:underline"
               >
-                Remove photo
+                Remove {isVideoFile(photo.file) ? "video" : "photo"}
               </button>
             )}
           </div>

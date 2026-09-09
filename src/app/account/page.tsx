@@ -70,7 +70,7 @@ function SignedOut() {
 }
 
 function SignedIn() {
-  const { user } = useAuth();
+  const { user, updateUserName } = useAuth();
   const { showToast, openSell } = useShop();
   const uid = user?.id ?? null;
   const { isAdmin } = useIsAdmin(uid);
@@ -84,6 +84,8 @@ function SignedIn() {
   // Draft stays null until the user types, so we never sync server state
   // inside an effect (avoids a stale write racing the async phone fetch).
   const [phoneDraft, setPhoneDraft] = useState<string | null>(null);
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
+  const [nameSaving, setNameSaving] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [confirmMsg, setConfirmMsg] = useState<{ id: string; text: string } | null>(null);
   const [boostTarget, setBoostTarget] = useState<Listing | null>(null);
@@ -139,12 +141,31 @@ function SignedIn() {
     await updateProfilePhone(uid, phone.trim());
   };
 
+  const saveName = async () => {
+    const trimmed = (nameDraft ?? "").trim();
+    if (!trimmed) {
+      showToast("Name can't be empty.");
+      return;
+    }
+    setNameSaving(true);
+    try {
+      await updateUserName(trimmed);
+      setNameDraft(null);
+      showToast("Name updated.");
+    } catch {
+      showToast("Couldn't update name. Try again.");
+    } finally {
+      setNameSaving(false);
+    }
+  };
+
   const boostedUntil = (l: Listing): Date | undefined =>
     l.boostExpiresAt && l.boostExpiresAt.getTime() > now ? l.boostExpiresAt : undefined;
 
   const earned = (payouts ?? []).reduce((sum, p) => sum + p.amountKes, 0);
   const activeListings = (listings ?? []).filter((l) => l.status === "active").length;
-  const initial = (user?.name || user?.email || "U").charAt(0).toUpperCase();
+  const displayName = nameDraft ?? user?.name ?? "";
+  const initial = displayName.charAt(0).toUpperCase() || "U";
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -157,13 +178,36 @@ function SignedIn() {
       {/* Profile card */}
       <div className="flex flex-col gap-5 rounded-3xl border border-line bg-paper p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
         <div className="flex items-center gap-4">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-ink font-display text-2xl font-black text-cream">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-ink font-display text-2xl font-black text-cream">
             {initial}
           </span>
           <div>
-            <h1 className="font-display text-2xl font-black">
-              {user?.name || "Thrift head"}
-            </h1>
+            <div className="flex items-center gap-2">
+              <input
+                value={nameDraft ?? user?.name ?? ""}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onBlur={() => {
+                  const trimmed = (nameDraft ?? "").trim();
+                  if (trimmed && trimmed !== user?.name) saveName();
+                  else setNameDraft(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                }}
+                className="font-display text-2xl font-black bg-transparent border-b-2 border-transparent outline-none transition focus:border-accent w-full max-w-xs"
+                placeholder="Your name"
+                maxLength={40}
+              />
+              {nameDraft !== null && nameDraft.trim() !== (user?.name ?? "") && (
+                <button
+                  onClick={saveName}
+                  disabled={nameSaving || !nameDraft.trim()}
+                  className="shrink-0 rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-white transition hover:bg-accent-deep disabled:opacity-50"
+                >
+                  {nameSaving ? "Saving…" : "Save"}
+                </button>
+              )}
+            </div>
             <p className="text-sm text-ink-soft">{user?.email}</p>
             <div className="mt-3 max-w-md">
               <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-ink-soft">

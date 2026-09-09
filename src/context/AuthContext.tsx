@@ -34,6 +34,8 @@ interface AuthContextValue {
   signUpWithEmail: (name: string, email: string, password: string) => Promise<boolean>;
   resendConfirmationEmail: (email: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Update the user's display name in auth metadata and profiles table. */
+  updateUserName: (name: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -195,6 +197,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (client) await client.auth.signOut();
   }, []);
 
+  const updateUserName = useCallback(async (name: string) => {
+    const client = getBrowserClient();
+    if (!client) throw new Error("SUPABASE_NOT_CONFIGURED");
+    // Update auth metadata (source of truth for user.name).
+    const { error: metaErr } = await client.auth.updateUser({
+      data: { name },
+    });
+    if (metaErr) throw metaErr;
+    // Sync to the profiles table.
+    const { data: { user: updated } } = await client.auth.getUser();
+    if (updated) {
+      setUser(toAppUser(updated));
+      void upsertUserProfile(updated);
+    }
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -205,6 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUpWithEmail,
         resendConfirmationEmail,
         logout,
+        updateUserName,
       }}
     >
       {children}

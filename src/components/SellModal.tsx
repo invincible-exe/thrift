@@ -13,7 +13,7 @@ import {
 } from "@/lib/db";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { compressImage } from "@/lib/compress-image";
-import { CATEGORIES, CONDITIONS, PLATFORM_COMMISSION_MIN_KES } from "@/lib/constants";
+import { CATEGORIES, CONDITIONS, PLATFORM_COMMISSION_MIN_KES, MAX_VIDEO_DURATION_SEC } from "@/lib/constants";
 import { computeCommission } from "@/lib/payments";
 import LocationPicker from "./LocationPicker";
 import type { Location, ProductCategory } from "@/lib/types";
@@ -28,11 +28,12 @@ const INITIAL = {
   description: "",
 };
 
-// Listing photos — up to 5. Raw phone photos can be 5-10MB, but every
-// selected photo is compressed client-side before upload, so the 20MB cap
-// is just a sanity guard against absurd files.
-const MAX_PHOTOS = 5;
+// Listing media — up to 5 items (photos + videos). Photos are compressed
+// client-side before upload; videos are uploaded as-is.
+const MAX_MEDIA = 5;
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime", "video/ogg"]);
 
 interface PickedImage {
   file: File;
@@ -85,41 +86,69 @@ export default function SellModal() {
     reset();
   };
 
-  const handleImagesSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleMediaSelect = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
-    const room = MAX_PHOTOS - images.length;
+    const room = MAX_MEDIA - images.length;
     if (room <= 0) {
       setPhase("error");
-      setMessage(`You can add up to ${MAX_PHOTOS} photos.`);
+      setMessage(`You can add up to ${MAX_MEDIA} photos or videos.`);
       return;
     }
-    if (files.some((f) => !f.type.startsWith("image/"))) {
-      setPhase("error");
-      setMessage("Only image files: JPG, PNG or WebP.");
-      return;
-    }
-    if (files.some((f) => f.size > MAX_IMAGE_BYTES)) {
-      setPhase("error");
-      setMessage("A photo is over 5 MB. Pick smaller ones.");
-      return;
+    for (const f of files) {
+      const isVideo = VIDEO_TYPES.has(f.type) || f.type.startsWith("video/");
+      const isImage = f.type.startsWith("image/");
+      if (!isImage && !isVideo) {
+        setPhase("error");
+        setMessage("Only images (JPG, PNG, WebP) and videos (MP4, WebM) are supported.");
+        return;
+      }
+      if (isImage && f.size > MAX_IMAGE_BYTES) {
+        setPhase("error");
+        setMessage("An image is over 5 MB. Pick smaller ones.");
+        return;
+      }
+      if (isVideo && f.size > MAX_VIDEO_BYTES) {
+        setPhase("error");
+        setMessage("A video is over 50 MB. Pick a smaller one.");
+        return;
+      }
+      // Validate video duration client-side before uploading.
+      if (isVideo) {
+        const duration = await new Promise<number>((resolve) => {
+          const v = document.createElement("video");
+          v.preload = "metadata";
+          v.onloadedmetadata = () => resolve(v.duration);
+          v.onerror = () => resolve(0);
+          v.src = URL.createObjectURL(f);
+        });
+        if (duration > 0 && duration > MAX_VIDEO_DURATION_SEC) {
+          setPhase("error");
+          setMessage(`Videos must be ${MAX_VIDEO_DURATION_SEC}s or shorter. This one is ${Math.round(duration)}s.`);
+          return;
+        }
+      }
     }
     if (files.length > room) {
       setPhase("error");
       setMessage(
-        `Only ${room} more photo slot${room === 1 ? "" : "s"} left. Pick fewer at once.`
+        `Only ${room} more slot${room === 1 ? "" : "s"} left. Pick fewer at once.`
       );
       return;
     }
-    // Compress each photo before it goes anywhere — phone photos are
-    // 3-8MB, and Vercel's serverless functions cap request bodies at
-    // ~4.5MB, so raw uploads die with "Failed to fetch".
-    // Sequential, not parallel: decoding 5 full-size phone photos at once
-    // can blow through memory on the low-end devices this fix targets.
     const added: PickedImage[] = [];
     for (const file of files) {
-      const compressed = await compressImage(file);
-      added.push({ file: compressed, previewUrl: URL.createObjectURL(compressed) });
+      const isImage = file.type.startsWith("image/");
+      if (isImage) {
+        // Compress each photo before it goes anywhere — phone photos are
+        // 3-8MB, and Vercel's serverless functions cap request bodies at
+        // ~4.5MB, so raw uploads die with "Failed to fetch".
+        const compressed = await compressImage(file);
+        added.push({ file: compressed, previewUrl: URL.createObjectURL(compressed) });
+      } else {
+        // Videos: upload as-is, no client-side compression.
+        added.push({ file, previewUrl: URL.createObjectURL(file) });
+      }
     }
     setImages((prev) => [...prev, ...added]);
     setPhase("idle");
@@ -132,6 +161,9 @@ export default function SellModal() {
     if (removed) URL.revokeObjectURL(removed.previewUrl);
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
+
+  const isVideoFile = (file: File) =>
+    VIDEO_TYPES.has(file.type) || file.type.startsWith("video/");
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -153,7 +185,7 @@ export default function SellModal() {
     }
     if (!images.length) {
       setPhase("error");
-      setMessage("Add at least one photo of your piece from your device.");
+      setMessage("Add at least one photo or video of your piece from your device.");
       return;
     }
     setPhase("submitting");
@@ -362,22 +394,22 @@ export default function SellModal() {
 
               <div>
                 <span className={labelCls}>
-                  Photos{images.length > 0 ? ` (${images.length}/${MAX_PHOTOS})` : ""}
+                  Photos & Videos{images.length > 0 ? ` (${images.length}/${MAX_MEDIA})` : ""}
                 </span>
 
                 {images.length === 0 ? (
                   <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-line bg-paper px-4 py-8 text-center transition hover:border-accent hover:bg-sand/60">
                     <span className="text-3xl">📸</span>
-                    <span className="mt-2 text-sm font-bold text-ink">Tap to add photos</span>
+                    <span className="mt-2 text-sm font-bold text-ink">Tap to add photos or videos</span>
                     <span className="mt-1 text-xs text-ink-soft">
-                      Pick from your device. Up to {MAX_PHOTOS}, the first is the cover
+                      Pick from your device. Up to {MAX_MEDIA}, the first is the cover
                     </span>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/*,video/mp4,video/webm,video/quicktime"
                       multiple
                       className="sr-only"
-                      onChange={handleImagesSelect}
+                      onChange={handleMediaSelect}
                     />
                   </label>
                 ) : (
@@ -387,39 +419,54 @@ export default function SellModal() {
                         key={img.previewUrl}
                         className="relative aspect-square overflow-hidden rounded-xl border border-line bg-sand"
                       >
-                        <Image
-                          src={img.previewUrl}
-                          alt={`Photo ${i + 1}`}
-                          fill
-                          sizes="25%"
-                          className="object-cover"
-                          unoptimized
-                        />
+                        {isVideoFile(img.file) ? (
+                          <video
+                            src={img.previewUrl}
+                            className="h-full w-full object-cover"
+                            muted
+                            playsInline
+                            preload="metadata"
+                          />
+                        ) : (
+                          <Image
+                            src={img.previewUrl}
+                            alt={`Photo ${i + 1}`}
+                            fill
+                            sizes="25%"
+                            className="object-cover"
+                            unoptimized
+                          />
+                        )}
                         {i === 0 && (
                           <span className="absolute left-1.5 top-1.5 rounded-full bg-ink/80 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-cream">
                             Cover
                           </span>
                         )}
+                        {isVideoFile(img.file) && (
+                          <span className="absolute left-1.5 bottom-1.5 rounded-full bg-ink/80 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-cream">
+                            🎬 Video
+                          </span>
+                        )}
                         <button
                           type="button"
                           onClick={() => removeImage(i)}
-                          aria-label={`Remove photo ${i + 1}`}
+                          aria-label={`Remove ${isVideoFile(img.file) ? "video" : "photo"} ${i + 1}`}
                           className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-ink/80 text-xs text-cream transition hover:bg-accent"
                         >
                           ✕
                         </button>
                       </div>
                     ))}
-                    {images.length < MAX_PHOTOS && (
+                    {images.length < MAX_MEDIA && (
                       <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-line bg-paper text-center transition hover:border-accent hover:bg-sand/60">
                         <span className="text-xl leading-none text-ink-soft">＋</span>
-                        <span className="text-[10px] font-bold text-ink-soft">Add photo</span>
+                        <span className="text-[10px] font-bold text-ink-soft">Add media</span>
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="image/*,video/mp4,video/webm,video/quicktime"
                           multiple
                           className="sr-only"
-                          onChange={handleImagesSelect}
+                          onChange={handleMediaSelect}
                         />
                       </label>
                     )}
@@ -427,8 +474,8 @@ export default function SellModal() {
                 )}
 
                 <p className="mt-1.5 text-xs text-ink-soft">
-                  Up to {MAX_PHOTOS} photos. The first is the cover · JPG, PNG or WebP up to 5 MB
-                  each
+                  Up to {MAX_MEDIA} photos or videos. The first is the cover · Images up to 5 MB,
+                  videos up to 50 MB
                 </p>
               </div>
 

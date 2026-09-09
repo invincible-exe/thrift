@@ -37,6 +37,9 @@ export const MPESA_PHONE_REGEX = /^2547\d{8}$/;
 
 export const SUPPORT_EMAIL = "1010thriftss@gmail.com";
 
+/** Max video duration sellers can upload (seconds). */
+export const MAX_VIDEO_DURATION_SEC = 30;
+
 export const CONDITIONS = ["Brand new", "Like new", "Very good", "Good"] as const;
 
 export const CATEGORIES = [
@@ -46,3 +49,8 @@ export const CATEGORIES = [
   "Caps",
   "Shoes",
 ] as const;
+
+/** Returns true when a URL points to a video file (by extension). */
+export function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|mov|ogg)(\?|$)/i.test(url);
+}

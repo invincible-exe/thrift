@@ -8,6 +8,8 @@ export const runtime = "nodejs";
 
 const BUCKET = "product-images";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime", "video/ogg"]);
 // Seller photos are compressed + converted to WebP before hitting storage,
 // so the realtime feed stays fast on mobile data. 2048px on the long edge at
 // q90 keeps details sharp when buyers zoom in the lightbox (a retina
@@ -73,12 +75,25 @@ export async function POST(req: Request) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "NO_FILE" }, { status: 400 });
   }
-  if (!file.type.startsWith("image/")) {
-    return NextResponse.json({ error: "NOT_IMAGE" }, { status: 400 });
+
+  const isVideo = VIDEO_TYPES.has(file.type) || file.type.startsWith("video/");
+  const isImage = file.type.startsWith("image/");
+
+  if (!isImage && !isVideo) {
+    return NextResponse.json(
+      { error: "UNSUPPORTED_TYPE", message: "Upload an image (JPG, PNG, WebP) or video (MP4, WebM)." },
+      { status: 400 }
+    );
   }
-  if (file.size > MAX_IMAGE_BYTES) {
+  if (isImage && file.size > MAX_IMAGE_BYTES) {
     return NextResponse.json(
       { error: "FILE_TOO_LARGE", message: "Use an image file under 5 MB." },
+      { status: 400 }
+    );
+  }
+  if (isVideo && file.size > MAX_VIDEO_BYTES) {
+    return NextResponse.json(
+      { error: "FILE_TOO_LARGE", message: "Use a video file under 50 MB." },
       { status: 400 }
     );
   }
@@ -99,34 +114,48 @@ export async function POST(req: Request) {
       }
     }
 
-    // Compress + convert to WebP server-side. Falls back to the original
-    // bytes only if sharp can't process the image (never fails the upload
-    // because of an exotic format).
     const input = Buffer.from(await file.arrayBuffer());
-    let webp: Buffer;
-    let compressed = false;
-    try {
-      webp = await sharp(input)
-        .rotate() // apply EXIF orientation
-        .resize({
-          width: MAX_EDGE,
-          height: MAX_EDGE,
-          fit: "inside",
-          withoutEnlargement: true,
-        })
-        .webp({ quality: WEBP_QUALITY })
-        .toBuffer();
-      compressed = true;
-    } catch {
-      webp = input;
+    let uploadBuffer: Buffer;
+    let uploadContentType: string;
+    let ext: string;
+
+    if (isVideo) {
+      // Videos are uploaded as-is — no transcoding.
+      uploadBuffer = input;
+      uploadContentType = file.type;
+      ext = file.type.includes("webm") ? "webm" : file.type.includes("quicktime") ? "mov" : "mp4";
+    } else {
+      // Compress + convert to WebP server-side. Falls back to the original
+      // bytes only if sharp can't process the image (never fails the upload
+      // because of an exotic format).
+      let webp: Buffer;
+      let compressed = false;
+      try {
+        webp = await sharp(input)
+          .rotate() // apply EXIF orientation
+          .resize({
+            width: MAX_EDGE,
+            height: MAX_EDGE,
+            fit: "inside",
+            withoutEnlargement: true,
+          })
+          .webp({ quality: WEBP_QUALITY })
+          .toBuffer();
+        compressed = true;
+      } catch {
+        webp = input;
+      }
+      uploadBuffer = webp;
+      uploadContentType = compressed ? "image/webp" : file.type;
+      ext = "webp";
     }
 
-    const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
+    const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
-    const { error: uploadErr } = await admin.storage.from(BUCKET).upload(path, webp, {
+    const { error: uploadErr } = await admin.storage.from(BUCKET).upload(path, uploadBuffer, {
       cacheControl: "3600",
       upsert: false,
-      contentType: compressed ? "image/webp" : file.type,
+      contentType: uploadContentType,
     });
     if (uploadErr) throw uploadErr;
 

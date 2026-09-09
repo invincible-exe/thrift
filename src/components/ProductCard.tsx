@@ -8,6 +8,7 @@ import { formatKes } from "@/lib/format";
 import { useShop } from "@/context/ShopContext";
 import { useAuth } from "@/context/AuthContext";
 import { toggleWishlist, useWishlistIds } from "@/lib/db";
+import { isVideoUrl } from "@/lib/constants";
 import { gsap, useGSAP } from "@/lib/gsap";
 import RatingStars from "./ui/RatingStars";
 import ProductGalleryModal from "./ProductGalleryModal";
@@ -61,11 +62,13 @@ export default function ProductCard({
   // Your own listing — no Buy button (sellers can't buy their own pieces;
   // the checkout route + purchase SQL enforce it server-side too).
   const ownsIt = Boolean(user && product.sellerId && product.sellerId === user.id);
+  const coverIsVideo = isVideoUrl(product.imageUrl);
 
   const saved = wishlistIds?.includes(product.id) ?? false;
   const [optimistic, setOptimistic] = useState<boolean | null>(null);
   const [resetKey, setResetKey] = useState("");
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [muted, setMuted] = useState(true);
 
   const handleShare = useCallback(
     (e: React.MouseEvent) => {
@@ -161,14 +164,31 @@ export default function ProductCard({
           aria-label={`View ${product.title}`}
           className="absolute inset-0 z-0 block cursor-pointer"
         >
-          <Image
-            src={product.imageUrl}
-            alt={product.title}
-            fill
-            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-            quality={95}
-            className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-          />
+          {coverIsVideo ? (
+            <video
+              src={product.imageUrl}
+              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+              muted={muted}
+              loop
+              playsInline
+              preload="metadata"
+              onPointerEnter={(e) => { (e.currentTarget as HTMLVideoElement).play().catch(() => {}); }}
+              onPointerLeave={(e) => {
+                const v = e.currentTarget as HTMLVideoElement;
+                v.pause();
+                v.currentTime = 0;
+              }}
+            />
+          ) : (
+            <Image
+              src={product.imageUrl}
+              alt={product.title}
+              fill
+              sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+              quality={95}
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-ink/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         </Link>
 
@@ -196,6 +216,11 @@ export default function ProductCard({
               Yours
             </span>
           )}
+          {coverIsVideo && (
+            <span className="rounded-full bg-ink/80 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-cream backdrop-blur">
+              🎬 Video
+            </span>
+          )}
           {product.imageUrls && product.imageUrls.length > 1 && (
             <button
               onClick={(e) => {
@@ -204,7 +229,7 @@ export default function ProductCard({
               }}
               className="rounded-full bg-paper/90 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-ink backdrop-blur transition hover:bg-paper"
             >
-              📷 {product.imageUrls.length} photos
+              📷 {product.imageUrls.length} media
             </button>
           )}
         </div>
