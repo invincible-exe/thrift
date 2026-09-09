@@ -186,6 +186,9 @@ function SignedIn() {
               <input
                 value={nameDraft ?? user?.name ?? ""}
                 onChange={(e) => setNameDraft(e.target.value)}
+                onFocus={() => {
+                  if (nameDraft === null) setNameDraft(user?.name ?? "");
+                }}
                 onBlur={() => {
                   const trimmed = (nameDraft ?? "").trim();
                   if (trimmed && trimmed !== user?.name) saveName();
@@ -194,7 +197,7 @@ function SignedIn() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") (e.target as HTMLInputElement).blur();
                 }}
-                className="font-display text-2xl font-black bg-transparent border-b-2 border-transparent outline-none transition focus:border-accent w-full max-w-xs"
+                className="font-display text-2xl font-black bg-sand border-b-2 border-line px-3 py-1 -mx-3 rounded-lg outline-none transition focus:border-accent w-full max-w-xs"
                 placeholder="Your name"
                 maxLength={40}
               />
@@ -209,6 +212,7 @@ function SignedIn() {
               )}
             </div>
             <p className="text-sm text-ink-soft">{user?.email}</p>
+            <p className="text-[11px] text-ink-soft/60">Click the name above to edit it</p>
             <div className="mt-3 max-w-md">
               <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-ink-soft">
                 Payout details: where your earnings land
