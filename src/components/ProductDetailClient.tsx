@@ -8,6 +8,7 @@ import { formatKes } from "@/lib/format";
 import { useShop } from "@/context/ShopContext";
 import { useAuth } from "@/context/AuthContext";
 import { toggleWishlist, useWishlistIds } from "@/lib/db";
+import { isVideoUrl } from "@/lib/constants";
 import RatingStars from "./ui/RatingStars";
 import { useNow } from "@/lib/use-now";
 
@@ -70,7 +71,10 @@ export default function ProductDetailClient({
       try {
         const res = await fetch(photos[index]);
         const blob = await res.blob();
-        const ext = blob.type.includes("png") ? ".png" : ".jpg";
+        const isVid = isVideoUrl(photos[index]);
+        const ext = isVid
+          ? blob.type.includes("webm") ? ".webm" : ".mp4"
+          : blob.type.includes("png") ? ".png" : ".jpg";
         const file = new File([blob], `${product.title}${ext}`, {
           type: blob.type,
         });
@@ -134,16 +138,27 @@ export default function ProductDetailClient({
         {/* Gallery */}
         <div>
           <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-sand">
-            <Image
-              key={photos[index]}
-              src={photos[index]}
-              alt={`${product.title}, photo ${index + 1}`}
-              fill
-              sizes="(min-width: 1024px) 50vw, 100vw"
-              quality={95}
-              priority
-              className="object-cover"
-            />
+            {isVideoUrl(photos[index]) ? (
+              <video
+                key={photos[index]}
+                src={photos[index]}
+                className="h-full w-full object-contain"
+                controls
+                playsInline
+                preload="auto"
+              />
+            ) : (
+              <Image
+                key={photos[index]}
+                src={photos[index]}
+                alt={`${product.title}, photo ${index + 1}`}
+                fill
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                quality={95}
+                priority
+                className="object-cover"
+              />
+            )}
             {boosted && (
               <span className="absolute left-4 top-4 rounded-full bg-amber-400 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-lime-ink shadow-sm">
                 Boosted ⚡
@@ -196,14 +211,23 @@ export default function ProductDetailClient({
                 <button
                   key={p}
                   onClick={() => setIndex(i)}
-                  aria-label={`View photo ${i + 1}`}
+                  aria-label={`View ${isVideoUrl(p) ? "video" : "photo"} ${i + 1}`}
                   className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-xl transition ${
                     i === index
                       ? "ring-2 ring-accent ring-offset-2 ring-offset-paper"
                       : "opacity-70 hover:opacity-100"
                   }`}
                 >
-                  <Image src={p} alt="" fill sizes="80px" className="object-cover" />
+                  {isVideoUrl(p) ? (
+                    <video src={p} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                  ) : (
+                    <Image src={p} alt="" fill sizes="80px" className="object-cover" />
+                  )}
+                  {isVideoUrl(p) && (
+                    <span className="absolute bottom-0.5 left-0.5 rounded bg-ink/75 px-1 py-px text-[8px] font-bold text-cream">
+                      🎬
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
