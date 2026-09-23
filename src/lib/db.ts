@@ -6,6 +6,8 @@ import type {
   Location,
   MeetupCheckin,
   MeetupShare,
+  ListingConversation,
+  ListingMessage,
   Order,
   OrderDispute,
   OrderMessage,
@@ -1460,6 +1462,81 @@ export async function sendOrderMessage(orderId: string, body: string): Promise<v
     body: body.trim(),
   });
   if (error) throw new Error(String(error.message ?? "Couldn't send the message."));
+}
+
+/* ------------------------------------------------------------------ */
+/* Pre-purchase chat: buyers ↔ the uploader of a piece                 */
+/* ------------------------------------------------------------------ */
+
+function listingConversationFromRow(row: Row): ListingConversation {
+  return {
+    id: String(row.id ?? ""),
+    listingId: String(row.listing_id ?? ""),
+    buyerId: String(row.buyer_id ?? ""),
+    sellerId: String(row.seller_id ?? ""),
+    listingTitle: String(row.listing_title ?? ""),
+    listingImage: String(row.listing_image ?? ""),
+    buyerName: String(row.buyer_name ?? ""),
+    sellerName: String(row.seller_name ?? ""),
+    createdAt: toDate(row.created_at),
+  };
+}
+
+function listingMessageFromRow(row: Row): ListingMessage {
+  return {
+    id: String(row.id ?? ""),
+    conversationId: String(row.conversation_id ?? ""),
+    senderId: String(row.sender_id ?? ""),
+    body: String(row.body ?? ""),
+    createdAt: toDate(row.created_at),
+  };
+}
+
+/**
+ * Open (or find) the caller's conversation on a piece. The SECURITY
+ * DEFINER RPC validates the piece exists, has an uploader, and isn't the
+ * caller's own — then dedupes on (listing_id, buyer_id) so re-opening
+ * always returns the same thread. Throws with a server error code
+ * (OWN_PIECE, NO_SELLER, PIECE_NOT_FOUND, AUTH_REQUIRED) on failure.
+ */
+export async function openListingChat(listingId: string): Promise<string> {
+  const client = getBrowserClient();
+  if (!client) throw new Error("SUPABASE_NOT_CONFIGURED");
+  const { data, error } = await client.rpc("open_listing_chat", { p_listing_id: listingId });
+  if (error) throw new Error(String(error.message ?? "Couldn't open the chat."));
+  return String(data);
+}
+
+/** All messages in one listing conversation (RLS: participants only). */
+export function useListingMessages(conversationId: string | null): ListingMessage[] | null {
+  return useRealtimeRows("listing_messages", listingMessageFromRow, {
+    filterColumn: "conversation_id",
+    filterValue: conversationId,
+    max: 200,
+  });
+}
+
+/** Send a message in a listing conversation. RLS pins sender_id to the
+ *  caller and requires them to be the thread's buyer or seller. */
+export async function sendListingMessage(conversationId: string, body: string): Promise<void> {
+  const client = getBrowserClient();
+  if (!client) throw new Error("SUPABASE_NOT_CONFIGURED");
+  const { error } = await client.from("listing_messages").insert({
+    conversation_id: conversationId,
+    sender_id: (await client.auth.getUser()).data.user?.id ?? "",
+    body: body.trim(),
+  });
+  if (error) throw new Error(String(error.message ?? "Couldn't send the message."));
+}
+
+/**
+ * Every conversation the signed-in user is part of (as buyer OR seller).
+ * RLS already scopes the table to participants, so one unfiltered query
+ * covers both sides of the inbox — no OR predicate needed client-side.
+ */
+export function useMyConversations(uid: string | null): ListingConversation[] | null {
+  const rows = useRealtimeRows("listing_conversations", listingConversationFromRow, { max: 60 });
+  return uid ? rows : null;
 }
 
 /* ------------------------------------------------------------------ */

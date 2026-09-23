@@ -138,6 +138,29 @@ export interface OrderMessage {
   createdAt: Date;
 }
 
+/** One pre-purchase conversation about a piece (buyer ↔ its uploader). */
+export interface ListingConversation {
+  id: string;
+  listingId: string;
+  buyerId: string;
+  sellerId: string;
+  /** Snapshot of the piece + parties at conversation start (inbox display). */
+  listingTitle: string;
+  listingImage: string;
+  buyerName: string;
+  sellerName: string;
+  createdAt: Date;
+}
+
+/** One message in a pre-purchase listing conversation. */
+export interface ListingMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  body: string;
+  createdAt: Date;
+}
+
 /** A buyer's "I didn't receive it" flag on an order. */
 export interface OrderDispute {
   id: string;

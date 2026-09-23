@@ -7,9 +7,10 @@ import type { Product } from "@/lib/types";
 import { formatKes } from "@/lib/format";
 import { useShop } from "@/context/ShopContext";
 import { useAuth } from "@/context/AuthContext";
-import { toggleWishlist, useWishlistIds } from "@/lib/db";
+import { openListingChat, toggleWishlist, useWishlistIds } from "@/lib/db";
 import { isVideoUrl } from "@/lib/constants";
 import RatingStars from "./ui/RatingStars";
+import ListingChat from "./ListingChat";
 import { useNow } from "@/lib/use-now";
 
 /**
@@ -34,6 +35,9 @@ export default function ProductDetailClient({
   const [index, setIndex] = useState(0);
   const [optimistic, setOptimistic] = useState<boolean | null>(null);
   const [copied, setCopied] = useState(false);
+  // The pre-purchase thread with the uploader — opened via RPC, rendered
+  // inline below the share buttons once it exists.
+  const [chatId, setChatId] = useState<string | null>(null);
 
   const saved = wishlistIds?.includes(product.id) ?? false;
   const isSaved = optimistic ?? saved;
@@ -60,6 +64,24 @@ export default function ProductDetailClient({
       },
       { type: "wishlist", productId: product.id, next }
     );
+  };
+
+  /** Open the pre-purchase chat with the uploader (auth-gated like save). */
+  const startChat = () => {
+    gateAction(() => {
+      openListingChat(product.id)
+        .then(setChatId)
+        .catch((err: unknown) => {
+          const code = err instanceof Error ? err.message : "";
+          showToast(
+            code === "OWN_PIECE"
+              ? "That's your own piece — buyer messages land in your account inbox."
+              : code === "NO_SELLER" || code === "PIECE_NOT_FOUND"
+                ? "No seller to chat with for this piece."
+                : "Couldn't open the chat. Try again."
+          );
+        });
+    });
   };
 
   const shareText = `${product.title}: ${formatKes(product.priceKes)} · 1-of-1 on 10/10 Thrifts`;
@@ -293,7 +315,21 @@ export default function ProductDetailClient({
                 </p>
               )}
 
+              {chatId && (
+                <div className="mt-5">
+                  <ListingChat conversationId={chatId} otherLabel="Seller" />
+                </div>
+              )}
+
               <div className="mt-5 flex flex-wrap gap-2">
+                {product.sellerId && !ownsIt && (
+                  <button
+                    onClick={startChat}
+                    className="rounded-full border border-line bg-paper px-4 py-2 text-xs font-bold text-ink-soft transition hover:border-ink hover:text-ink"
+                  >
+                    💬 Chat with seller
+                  </button>
+                )}
                 <a
                   href={whatsappUrl}
                   target="_blank"

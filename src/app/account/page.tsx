@@ -19,6 +19,7 @@ import {
   updateProfileLocation,
   updateProfilePhone,
   uploadProductImage,
+  useMyConversations,
   useOpenDispute,
   usePayoutSettings,
   useProfileLocation,
@@ -30,15 +31,16 @@ import {
   useUserPayoutReports,
 } from "@/lib/db";
 import { formatDate, formatKes } from "@/lib/format";
-import { BOOST_PRICE_KES, NO_SHOW_WINDOW_MS, PLATFORM_WALLET } from "@/lib/constants";
+import { BOOST_PRICE_KES, NO_SHOW_WINDOW_MS, PLATFORM_WALLET, isVideoUrl } from "@/lib/constants";
 import { useIsAdmin } from "@/lib/admin";
 import BoostModal from "@/components/BoostModal";
 import LocationPicker from "@/components/LocationPicker";
 import MeetupSafety from "@/components/MeetupSafety";
 import OrderChat from "@/components/OrderChat";
+import ListingChat from "@/components/ListingChat";
 import FeedbackRating from "@/components/ui/FeedbackRating";
 import { useNow } from "@/lib/use-now";
-import type { Listing, Location, Order, Payout } from "@/lib/types";
+import type { Listing, ListingConversation, Location, Order, Payout } from "@/lib/types";
 import Link from "next/link";
 
 const METHOD_LABEL: Record<string, string> = {
@@ -79,6 +81,7 @@ function SignedIn() {
   const listings = useUserListings(uid);
   const payouts = useUserPayouts(uid);
   const payoutReports = useUserPayoutReports(uid);
+  const conversations = useMyConversations(uid);
   const verification = useSellerVerification(uid);
   const phone = useProfilePhone(uid);
   // Draft stays null until the user types, so we never sync server state
@@ -277,6 +280,20 @@ function SignedIn() {
           </ul>
         ) : orders !== null ? (
           <EmptyState text="No purchases yet. Go grab a 1-of-1." />
+        ) : null}
+      </div>
+
+      {/* Messages — pre-purchase chats on your pieces (both sides) */}
+      <div className="mt-12">
+        <h2 className="mb-4 font-display text-xl font-black">Messages</h2>
+        {conversations && conversations.length > 0 ? (
+          <ul className="space-y-3">
+            {conversations.map((c) => (
+              <ConversationRow key={c.id} conv={c} me={uid} />
+            ))}
+          </ul>
+        ) : conversations !== null ? (
+          <EmptyState text="No chats yet. Buyers can message you straight from any of your pieces." />
         ) : null}
       </div>
 
@@ -1127,6 +1144,61 @@ function OrderCard({
               )}
             </div>
           )}
+        </div>
+      )}
+    </li>
+  );
+}
+
+/** One pre-purchase thread in the Messages inbox (buyer or seller side). */
+function ConversationRow({ conv, me }: { conv: ListingConversation; me: string | null }) {
+  const [open, setOpen] = useState(false);
+  const iAmSeller = conv.sellerId === me;
+  const other = iAmSeller ? conv.buyerName || "Buyer" : conv.sellerName || "Seller";
+  const cover = conv.listingImage;
+  return (
+    <li className="rounded-2xl border border-line bg-paper p-4">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-3 text-left"
+      >
+        <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-sand">
+          {cover &&
+            (isVideoUrl(cover) ? (
+              <video
+                src={cover}
+                className="h-full w-full object-cover"
+                muted
+                playsInline
+                preload="metadata"
+              />
+            ) : (
+              <Image src={cover} alt="" fill sizes="48px" className="object-cover" />
+            ))}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-bold">
+            {iAmSeller ? `Chat with ${other}` : `“${conv.listingTitle}”`}
+          </span>
+          <span className="block truncate text-xs text-ink-soft">
+            {iAmSeller
+              ? `About “${conv.listingTitle}” · ${formatDate(conv.createdAt)}`
+              : `with ${other} · ${formatDate(conv.createdAt)}`}
+          </span>
+        </span>
+        <span className="shrink-0 text-xs font-bold text-accent">{open ? "Hide" : "Open"}</span>
+      </button>
+      {open && (
+        <div className="mt-3">
+          <ListingChat
+            conversationId={conv.id}
+            otherLabel={iAmSeller ? "Buyer" : "Seller"}
+            header={
+              iAmSeller
+                ? "A buyer is asking about your piece"
+                : "Ask before you buy — fit, condition, meetup spot"
+            }
+          />
         </div>
       )}
     </li>

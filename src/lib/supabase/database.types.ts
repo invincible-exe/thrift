@@ -589,6 +589,66 @@ export interface Database {
         };
         Relationships: [];
       };
+      listing_conversations: {
+        Row: {
+          id: string;
+          listing_id: string;
+          buyer_id: string;
+          seller_id: string;
+          listing_title: string;
+          listing_image: string;
+          buyer_name: string;
+          seller_name: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          listing_id: string;
+          buyer_id: string;
+          seller_id: string;
+          listing_title?: string;
+          listing_image?: string;
+          buyer_name?: string;
+          seller_name?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          listing_id?: string;
+          buyer_id?: string;
+          seller_id?: string;
+          listing_title?: string;
+          listing_image?: string;
+          buyer_name?: string;
+          seller_name?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      listing_messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          sender_id: string;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          sender_id: string;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          conversation_id?: string;
+          sender_id?: string;
+          body?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       meetup_checkins: {
         Row: {
           id: string;
@@ -649,6 +709,12 @@ export interface Database {
       is_admin: {
         Args: Record<PropertyKey, never>;
         Returns: boolean;
+      };
+      open_listing_chat: {
+        Args: {
+          p_listing_id: string;
+        };
+        Returns: string;
       };
       purchase_product: {
         Args: {
