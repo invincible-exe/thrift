@@ -1539,6 +1539,79 @@ export function useMyConversations(uid: string | null): ListingConversation[] | 
   return uid ? rows : null;
 }
 
+/** Newest message in a thread — what the inbox row shows as a preview. */
+export type ConversationPreview = Pick<ListingMessage, "senderId" | "body" | "createdAt">;
+
+/**
+ * Latest message for each of the caller's threads, so the Messages inbox
+ * can show a preview line ("still available?") that tells threads apart.
+ * One query covers every visible thread (RLS scopes the table) — newest
+ * first, first row per conversation wins — and a realtime listener
+ * refetches when any message lands so previews stay live.
+ */
+export function useConversationPreviews(
+  conversationIds: string[] | null
+): Record<string, ConversationPreview> | null {
+  const [previews, setPreviews] = useState<Record<string, ConversationPreview> | null>(null);
+  // Stable effect key: the caller rebuilds the ids array on every render.
+  const key = conversationIds ? [...conversationIds].sort().join(",") : "";
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    const ids = key ? key.split(",") : [];
+    // Nothing to fetch (inbox still loading or empty) — previews stay null,
+    // which callers render the same as "no preview".
+    if (ids.length === 0) return;
+    const client = getBrowserClient();
+    if (!client) return;
+    let active = true;
+
+    const load = async () => {
+      const { data, error } = await client
+        .from("listing_messages")
+        .select("conversation_id, sender_id, body, created_at")
+        .in("conversation_id", ids)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (!active) return;
+      if (error) {
+        console.error("listing_messages preview fetch failed:", error);
+        setPreviews({});
+        return;
+      }
+      const map: Record<string, ConversationPreview> = {};
+      for (const row of data ?? []) {
+        const cid = String(row.conversation_id ?? "");
+        // Rows come newest-first, so the first sighting is the latest.
+        if (cid && !(cid in map)) {
+          map[cid] = {
+            senderId: String(row.sender_id ?? ""),
+            body: String(row.body ?? ""),
+            createdAt: toDate(row.created_at),
+          };
+        }
+      }
+      setPreviews(map);
+    };
+
+    load();
+
+    const channel = client
+      .channel(uniqueChannelName("listing_messages:previews"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "listing_messages" }, () =>
+        load()
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      client.removeChannel(channel);
+    };
+  }, [key]);
+
+  return previews;
+}
+
 /* ------------------------------------------------------------------ */
 /* Meetup safety: check-ins + opt-in live location shares              */
 /* ------------------------------------------------------------------ */

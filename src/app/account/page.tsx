@@ -19,7 +19,9 @@ import {
   updateProfileLocation,
   updateProfilePhone,
   uploadProductImage,
+  useConversationPreviews,
   useMyConversations,
+  type ConversationPreview,
   useOpenDispute,
   usePayoutSettings,
   useProfileLocation,
@@ -82,6 +84,7 @@ function SignedIn() {
   const payouts = useUserPayouts(uid);
   const payoutReports = useUserPayoutReports(uid);
   const conversations = useMyConversations(uid);
+  const previews = useConversationPreviews(conversations?.map((c) => c.id) ?? null);
   const verification = useSellerVerification(uid);
   const phone = useProfilePhone(uid);
   // Draft stays null until the user types, so we never sync server state
@@ -289,7 +292,7 @@ function SignedIn() {
         {conversations && conversations.length > 0 ? (
           <ul className="space-y-3">
             {conversations.map((c) => (
-              <ConversationRow key={c.id} conv={c} me={uid} />
+              <ConversationRow key={c.id} conv={c} me={uid} preview={previews?.[c.id] ?? null} />
             ))}
           </ul>
         ) : conversations !== null ? (
@@ -1151,7 +1154,15 @@ function OrderCard({
 }
 
 /** One pre-purchase thread in the Messages inbox (buyer or seller side). */
-function ConversationRow({ conv, me }: { conv: ListingConversation; me: string | null }) {
+function ConversationRow({
+  conv,
+  me,
+  preview,
+}: {
+  conv: ListingConversation;
+  me: string | null;
+  preview: ConversationPreview | null;
+}) {
   const [open, setOpen] = useState(false);
   const iAmSeller = conv.sellerId === me;
   const other = iAmSeller ? conv.buyerName || "Buyer" : conv.sellerName || "Seller";
@@ -1180,6 +1191,12 @@ function ConversationRow({ conv, me }: { conv: ListingConversation; me: string |
           <span className="block truncate text-sm font-bold">
             {iAmSeller ? `Chat with ${other}` : `“${conv.listingTitle}”`}
           </span>
+          {preview && (
+            <span className="block truncate text-xs italic text-ink-soft">
+              {preview.senderId === me ? "You: " : ""}
+              {preview.body}
+            </span>
+          )}
           <span className="block truncate text-xs text-ink-soft">
             {iAmSeller
               ? `About “${conv.listingTitle}” · ${formatDate(conv.createdAt)}`
