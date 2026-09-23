@@ -549,9 +549,15 @@ export interface UploadedImage {
  * Uploads a listing photo via the server (service-role) — the route creates
  * the `product-images` bucket on first use and bypasses storage RLS, so
  * uploads work even if the migration's storage section hasn't run yet.
+ *
+ * Videos take a different path: Vercel caps serverless request bodies at
+ * ~4.5 MB (`413 FUNCTION_PAYLOAD_TOO_LARGE`), so sending them through this
+ * API failed on production for every real video. Instead the server mints a
+ * Supabase signed upload URL and the bytes go straight browser → Storage.
  */
 export async function uploadProductImage(userId: string, file: File): Promise<UploadedImage> {
   if (!isSupabaseConfigured) throw new Error("SUPABASE_NOT_CONFIGURED");
+  if (file.type.startsWith("video/")) return uploadVideoDirectly(file);
   const form = new FormData();
   form.append("file", file);
   // Mobile connections drop mid-upload all the time — retry once before
@@ -573,6 +579,49 @@ export async function uploadProductImage(userId: string, file: File): Promise<Up
     throw new Error(data.message ?? data.error ?? "Photo upload failed.");
   }
   return { url: data.url, path: data.path };
+}
+
+/**
+ * Video upload that never touches our API: request a signed URL from the
+ * server (auth + rate limit happen there), then PUT the file straight to
+ * Supabase Storage — no 4.5 MB Vercel body limit in the way.
+ */
+async function uploadVideoDirectly(file: File): Promise<UploadedImage> {
+  const payload = JSON.stringify({ contentType: file.type, size: file.size });
+  const signOnce = () =>
+    fetch("/api/storage/sign-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+    });
+  // Same flaky-mobile retry as the photo path — but only the tiny sign
+  // request is retried; the video bytes themselves go direct to Supabase.
+  let res: Response;
+  try {
+    res = await signOnce();
+  } catch {
+    await new Promise((r) => setTimeout(r, 1200));
+    res = await signOnce();
+  }
+  const signed = (await res.json().catch(() => ({}))) as {
+    bucket?: string;
+    path?: string;
+    token?: string;
+    url?: string;
+    error?: string;
+    message?: string;
+  };
+  if (!res.ok || !signed.bucket || !signed.path || !signed.token || !signed.url) {
+    throw new Error(signed.message ?? signed.error ?? "Video upload failed.");
+  }
+
+  const client = getBrowserClient();
+  if (!client) throw new Error("SUPABASE_NOT_CONFIGURED");
+  const { error } = await client.storage
+    .from(signed.bucket)
+    .uploadToSignedUrl(signed.path, signed.token, file);
+  if (error) throw new Error(error.message || "Video upload failed.");
+  return { url: signed.url, path: signed.path };
 }
 
 /** Best-effort removal of an uploaded photo (e.g. when a listing fails). */
