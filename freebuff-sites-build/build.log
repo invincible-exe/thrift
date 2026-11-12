@@ -1,0 +1,21 @@
+npm error code ERESOLVE
+npm error ERESOLVE unable to resolve dependency tree
+npm error
+npm error While resolving: thrift@0.1.0
+npm error Found: next@16.2.12
+npm error node_modules/next
+npm error   next@"16.2.12" from the root project
+npm error
+npm error Could not resolve dependency:
+npm error peer next@">=15.5.28 <16 || >=16.4.1" from @opennextjs/cloudflare@1.20.12
+npm error node_modules/@opennextjs/cloudflare
+npm error   dev @opennextjs/cloudflare@"1.20.12" from the root project
+npm error
+npm error Fix the upstream dependency conflict, or retry this command with --force or --legacy-peer-deps to accept an incorrect (and potentially broken) dependency resolution.
+npm error
+npm error
+npm error For a full report see:
+npm error /workspace/homes/d3ad4e28f26f50cead76b251/.npm/_logs/2026-11-12T17_13_42_130Z-eresolve-report.txt
+npm error A complete log of this run can be found in: /workspace/homes/d3ad4e28f26f50cead76b251/.npm/_logs/2026-11-12T17_13_42_130Z-debug-0.log
+
+Preparation failed at installing the OpenNext adapter

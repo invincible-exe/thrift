@@ -99,7 +99,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-cream/85 backdrop-blur-md">
       <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8">
-        <nav className="hidden items-center gap-6 lg:flex" aria-label="Primary">
+        <nav className="hidden items-center gap-5 lg:flex" aria-label="Primary">
           <a href="#new-drops" className="text-xs font-bold uppercase tracking-widest text-ink-soft transition hover:text-ink">
             New drops
           </a>
@@ -136,13 +136,15 @@ export default function Header() {
           </span>
         </Link>
 
-        <div className="flex items-center justify-end gap-2 sm:gap-3">
+        <div className="flex items-center justify-end gap-2.5 sm:gap-3">
           <Link
             href="/wishlist"
             aria-label={`Saved pieces${savedCount ? ` (${savedCount})` : ""}`}
             className="relative flex h-10 w-10 items-center justify-center rounded-full border border-line bg-paper text-base transition hover:border-ink/40 sm:hidden"
           >
-            🤍
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" aria-hidden className="h-5 w-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.099 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+            </svg>
             {savedCount > 0 && (
               <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-black text-white">
                 {savedCount}
@@ -260,11 +262,11 @@ export default function Header() {
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen((o) => !o)}
-                className="flex items-center gap-2 rounded-full border border-line bg-paper py-1.5 pl-1.5 pr-3 transition hover:border-ink/40"
+                className="flex shrink-0 items-center gap-2 rounded-full border border-line bg-paper py-1.5 pl-1.5 pr-3 transition hover:border-ink/40"
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-ink font-display text-sm font-black text-cream">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink font-display text-sm font-black text-cream">
                   {initial}
                 </span>
                 <span className="hidden max-w-[110px] truncate text-sm font-semibold sm:block">
@@ -325,38 +327,38 @@ export default function Header() {
       </div>
 
       {/* Mobile nav row — the four primary links, always reachable on
-          phones (they were desktop-only before). Shrinks to a scrollable
-          strip on very narrow screens. */}
+          phones. Flex negatively-margined strip so tabs are equal-height
+          and the touched anchors line up on one baseline. */}
       <nav
-        className="flex items-center justify-between gap-4 overflow-x-auto border-t border-line/70 px-4 py-2.5 sm:px-6 lg:hidden"
+        className="flex items-center overflow-x-auto border-t border-line/70 px-4 sm:px-6 lg:hidden"
         aria-label="Primary"
       >
         <a
           href="#new-drops"
-          className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-ink-soft transition hover:text-ink"
+          className="flex flex-shrink-0 items-center px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-ink-soft transition hover:text-ink"
         >
           New drops
         </a>
         <Link
           href="/wishlist"
-          className="relative shrink-0 text-[11px] font-bold uppercase tracking-wider text-ink-soft transition hover:text-ink"
+          className="relative flex flex-shrink-0 items-center px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-ink-soft transition hover:text-ink"
         >
           Saved
           {savedCount > 0 && (
-            <span className="absolute -right-3.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-black text-white">
+            <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-black text-white">
               {savedCount}
             </span>
           )}
         </Link>
         <a
           href="#drops"
-          className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-ink-soft transition hover:text-ink"
+          className="flex flex-shrink-0 items-center px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-ink-soft transition hover:text-ink"
         >
           Available
         </a>
         <Link
           href="/account#closet"
-          className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-ink-soft transition hover:text-ink"
+          className="flex flex-shrink-0 items-center px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-ink-soft transition hover:text-ink"
         >
           My closet
         </Link>

@@ -338,7 +338,7 @@ export default function ProductFeed() {
             <NeoSearch
               value={query}
               onChange={setQuery}
-              placeholder=""
+              placeholder="Search fits, sizes, or brands..."
               aria-label="Search drops"
               active={filtersOpen || activeCount > 0}
               onFilterClick={() => setFiltersOpen((open) => !open)}
@@ -358,7 +358,7 @@ export default function ProductFeed() {
                     </button>
                   )}
                 </div>
-                <div className="grid gap-5 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-ink-soft">
                       Sort by price
@@ -383,7 +383,7 @@ export default function ProductFeed() {
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
                       aria-label="Filter by category"
-                      className="w-full rounded-xl border border-line bg-paper px-3 py-2 text-sm font-semibold outline-none transition focus:border-ink"
+                      className="w-full rounded-xl border border-line bg-paper px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-ink"
                     >
                       <option value="all">All categories</option>
                       {categories.map((c) => (
@@ -409,7 +409,7 @@ export default function ProductFeed() {
                       ? buyerLoc?.area
                         ? `✓ Near me: ${buyerLoc.city} (${buyerLoc.area} first)`
                         : `✓ Near me: ${buyerLoc?.city ?? "your county"}`
-                      : "📍 Near me"}
+                      : "Near me"}
                   </button>
                   {nearMe && !buyerLoc && (
                     <p className="mt-2 text-xs text-ink-soft">
@@ -433,10 +433,14 @@ export default function ProductFeed() {
             panel above. Purely opt-in: pick a county (and optionally an
             area) to narrow the rack to pieces meeting there. Jumia-style:
             county → area only, no landmark precision. */}
-        <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-paper px-4 py-3">
-          <span className="mr-1 text-[11px] font-bold uppercase tracking-widest text-ink-soft">
-            📍 Location
-          </span>
+        <div className="mb-5 grid grid-cols-1 gap-3 rounded-2xl border border-line bg-paper p-4 sm:grid-cols-[1fr_auto_1fr_1fr_1fr_auto_auto_auto_1fr] sm:items-stretch sm:gap-0">
+          <div className="flex items-center gap-1.5 sm:col-span-2">
+            <svg className="h-4 w-4 shrink-0 text-ink-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 21s7-6.5 7-11a7 7 0 0 0-14 0c0 4.5 7 11 7 11Z"/>
+              <circle cx="12" cy="10" r="2.5"/>
+            </svg>
+            <span className="text-[11px] font-bold uppercase tracking-widest text-ink-soft">Location</span>
+          </div>
           <select
             value={locCity}
             onChange={(e) => {
@@ -444,7 +448,7 @@ export default function ProductFeed() {
               setLocArea("");
             }}
             aria-label="Filter by county"
-            className="w-40 rounded-xl border border-line bg-paper px-3 py-2 text-sm font-semibold outline-none transition focus:border-ink"
+            className="min-w-0 flex-1 rounded-xl border border-line bg-paper px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-ink sm:px-4"
           >
             <option value="">All counties</option>
             {filterCities.map((c) => (
@@ -458,7 +462,7 @@ export default function ProductFeed() {
             onChange={(e) => setLocArea(e.target.value)}
             disabled={!locCity}
             aria-label="Filter by area"
-            className="w-40 rounded-xl border border-line bg-paper px-3 py-2 text-sm font-semibold outline-none transition focus:border-ink disabled:opacity-50"
+            className="min-w-0 flex-1 rounded-xl border border-line bg-paper px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-ink disabled:opacity-50 sm:px-4"
           >
             <option value="">All areas</option>
             {filterAreas.map((a) => (
@@ -467,46 +471,52 @@ export default function ProductFeed() {
               </option>
             ))}
           </select>
-          {locCity && (
-            <button
-              type="button"
-              onClick={() => {
-                setLocCity("");
-                setLocArea("");
-              }}
-              className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft transition hover:border-ink hover:text-ink"
-            >
-              Clear
-            </button>
-          )}
-          {/* Visible Near-me toggle — makes the auto-enabled county filter
-              obvious and one-tap to turn back off. */}
-          {buyerLoc && (
-            <button
-              type="button"
-              onClick={() => toggleNearMe(!nearMe)}
-              aria-pressed={nearMe}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                nearMe
-                  ? "border-ink bg-ink text-cream"
-                  : "border-line bg-paper text-ink-soft hover:border-ink hover:text-ink"
-              }`}
-            >
-              {nearMe
-                ? `✓ Near me: ${buyerLoc.city}${buyerLoc.area ? ` (${buyerLoc.area} first)` : ""}`
-                : `📍 Near me: ${buyerLoc.city}`}
-            </button>
-          )}
-          {nearMe && buyerLoc && (
-            <button
-              type="button"
-              onClick={() => toggleNearMe(false)}
-              className="rounded-full border border-accent/30 bg-accent-soft/50 px-3 py-1.5 text-xs font-bold text-accent transition hover:bg-accent hover:text-white"
-            >
-              Show all drops
-            </button>
-          )}
-          {/* Area drop alert bell — new pieces in this county ping the bell. */}
+          <button
+            type="button"
+            onClick={() => {
+              setLocCity("");
+              setLocArea("");
+            }}
+            className={`rounded-xl border px-3 py-2.5 text-xs font-semibold transition shrink-0 sm:px-4 ${locCity
+              ? "border-ink bg-ink text-cream"
+              : "border-line bg-paper text-ink-soft hover:border-ink hover:text-ink"}`}
+          >
+            Clear
+          </button>
+          <div className="flex items-center gap-1.5 sm:col-span-3">
+            <svg className="h-4 w-4 shrink-0 text-ink-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 21s7-6.5 7-11a7 7 0 0 0-14 0c0 4.5 7 11 7 11Z"/>
+              <circle cx="12" cy="10" r="2.5"/>
+            </svg>
+            <span className="text-[11px] font-bold uppercase tracking-widest text-ink-soft">Near by</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => toggleNearMe(!nearMe)}
+            aria-pressed={nearMe}
+            className={`rounded-xl border px-3 py-2.5 text-xs font-semibold transition shrink-0 sm:px-4 ${nearMe
+              ? "border-ink bg-ink text-cream"
+              : "border-line bg-paper text-ink-soft hover:border-ink hover:text-ink"}`}
+          >
+            {nearMe
+              ? `✓ Near me: ${buyerLoc.city}${buyerLoc.area ? ` (${buyerLoc.area})` : ""}`
+              : `Near me: ${buyerLoc.city}`}
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleNearMe(false)}
+            className="rounded-xl border border-accent/30 bg-accent-soft/50 px-3 py-2.5 text-xs font-bold text-accent transition hover:bg-accent hover:text-white shrink-0 sm:px-4"
+          >
+            Show all
+          </button>
+          <div className="flex items-center gap-1.5">
+            <svg className="h-4 w-4 shrink-0 text-ink-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 5.5 9 12 9 12s-9-6.5-9-12Z"/>
+              <path d="M12 8v8"/>
+              <path d="M12 16h.01"/>
+            </svg>
+            <span className="text-[11px] font-bold uppercase tracking-widest text-ink-soft">Alerts</span>
+          </div>
           {buyerLoc && user && (
             <button
               type="button"
@@ -517,13 +527,11 @@ export default function ProductFeed() {
                   ? `We'll notify you when new drops land in ${buyerLoc.city}`
                   : `Notify me when new drops land in ${buyerLoc.city}`
               }
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                alertOn
-                  ? "border-amber-400 bg-amber-400 text-lime-ink"
-                  : "border-line bg-paper text-ink-soft hover:border-ink hover:text-ink"
-              }`}
+              className={`rounded-xl border px-3 py-2.5 text-xs font-semibold transition shrink-0 sm:px-4 ${alertOn
+                ? "border-amber-400 bg-amber-400 text-amber-ink"
+                : "border-line bg-paper text-ink-soft hover:border-ink hover:text-ink"}`}
             >
-              {alertOn ? `🔔 Alerts on · ${buyerLoc.city}` : `🔕 Notify me · ${buyerLoc.city}`}
+              {alertOn ? "Alerts on" : "Notify me"}
             </button>
           )}
         </div>

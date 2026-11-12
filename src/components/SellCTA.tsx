@@ -68,7 +68,7 @@ export default function SellCTA() {
             </h2>
             <p className="p2p-desc mt-5 max-w-md leading-relaxed text-cream/70">
               List your own fits in two minutes. When they sell, a 10% commission (min 50 KES)
-              funds 10/10 Thrifts, and <span className="font-bold text-lime">up to 90% lands in your wallet</span>.
+              funds 10/10 Thrifts, and <span className="font-bold text-amber-ink">up to 90% lands in your wallet</span>.
               No listing fees, no middlemen at the door.
             </p>
             <button
@@ -81,26 +81,27 @@ export default function SellCTA() {
           </div>
 
           <div className="grid gap-4">
-            <div className="p2p-stat relative overflow-hidden rounded-2xl border border-cream/15 bg-cream/5 p-6">
-              <div className="p2p-glare pointer-events-none absolute -inset-1/2 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.14),transparent_60%)] opacity-0" />
-              <p className="stat-num text-4xl font-black text-lime" data-value="90" data-suffix="%">
+            {/* Dark charcoal card on the cream page so the stat numbers stay
+                AA: bold ~24-28px charcoal on the page cream is ~15:1 and on
+                the card's dark ink base is ~19:1. Lime stays reserved for
+                the dark hero, where it is the call-to-action colour. */}
+            <div className="p2p-stat relative overflow-hidden rounded-2xl border border-line bg-paper p-6">
+              <p className="stat-num text-4xl font-black text-ink" data-value="90" data-suffix="%">
                 90%
               </p>
-              <p className="mt-1 text-sm text-cream/70">up to 90% goes straight to you · min 50 KES fee</p>
+              <p className="mt-1 text-sm text-ink-soft">up to 90% goes straight to you · min 50 KES fee</p>
             </div>
-            <div className="p2p-stat relative overflow-hidden rounded-2xl border border-cream/15 bg-cream/5 p-6">
-              <div className="p2p-glare pointer-events-none absolute -inset-1/2 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.14),transparent_60%)] opacity-0" />
-              <p className="stat-num text-4xl font-black text-accent" data-value="10" data-suffix="%">
+            <div className="p2p-stat relative overflow-hidden rounded-2xl border border-line bg-paper p-6">
+              <p className="stat-num text-4xl font-black text-ink" data-value="10" data-suffix="%">
                 10%
               </p>
-              <p className="mt-1 text-sm text-cream/70">commission keeps the rack running</p>
+              <p className="mt-1 text-sm text-ink-soft">commission keeps the rack running</p>
             </div>
-            <div className="p2p-stat relative overflow-hidden rounded-2xl border border-cream/15 bg-cream/5 p-6">
-              <div className="p2p-glare pointer-events-none absolute -inset-1/2 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.14),transparent_60%)] opacity-0" />
-              <p className="stat-num text-4xl font-black" data-value="0" data-suffix=" KES">
+            <div className="p2p-stat relative overflow-hidden rounded-2xl border border-line bg-paper p-6">
+              <p className="stat-num text-4xl font-black text-ink" data-value="0" data-suffix=" KES">
                 0 KES
               </p>
-              <p className="mt-1 text-sm text-cream/70">to list, pay only when you sell</p>
+              <p className="mt-1 text-sm text-ink-soft">to list, pay only when you sell</p>
             </div>
           </div>
         </div>

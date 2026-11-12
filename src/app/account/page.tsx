@@ -182,63 +182,65 @@ function SignedIn() {
         ← Back to store
       </Link>
       {/* Profile card */}
-      <div className="flex flex-col gap-5 rounded-3xl border border-line bg-paper p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
-        <div className="flex items-center gap-4">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-ink font-display text-2xl font-black text-cream">
-            {initial}
-          </span>
-          <div>
-            <div className="flex items-center gap-2">
-              <input
-                value={nameDraft ?? user?.name ?? ""}
-                onChange={(e) => setNameDraft(e.target.value)}
-                onFocus={() => {
-                  if (nameDraft === null) setNameDraft(user?.name ?? "");
-                }}
-                onBlur={() => {
-                  const trimmed = (nameDraft ?? "").trim();
-                  if (trimmed && trimmed !== user?.name) saveName();
-                  else setNameDraft(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                }}
-                className="font-display text-2xl font-black bg-sand border-b-2 border-line px-3 py-1 -mx-3 rounded-lg outline-none transition focus:border-accent w-full max-w-xs"
-                placeholder="Your name"
-                maxLength={40}
-              />
-              {nameDraft !== null && nameDraft.trim() !== (user?.name ?? "") && (
-                <button
-                  onClick={saveName}
-                  disabled={nameSaving || !nameDraft.trim()}
-                  className="shrink-0 rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-white transition hover:bg-accent-deep disabled:opacity-50"
-                >
-                  {nameSaving ? "Saving…" : "Save"}
-                </button>
-              )}
-            </div>
-            <p className="text-sm text-ink-soft">{user?.email}</p>
-            <p className="text-[11px] text-ink-soft/60">Click the name above to edit it</p>
-            <div className="mt-3 max-w-md">
-              <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-ink-soft">
-                Payout details: where your earnings land
-              </p>
-              <PayoutDetails
-                uid={uid}
-                phoneValue={phoneValue}
-                onPhoneChange={(v) => setPhoneDraft(v)}
-                onSavePhone={savePhone}
-              />
-            </div>
-            <div className="mt-3 max-w-sm">
-              <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-ink-soft">
-                Your area: see pieces near you
-              </p>
-              <LocationPicker value={profileLocationId} onChange={saveArea} />
+      <div className="grid gap-5 rounded-3xl border border-line bg-paper p-6 sm:grid-cols-3 sm:p-8">
+        <div className="sm:col-span-2">
+          <div className="flex items-center gap-4">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-ink font-display text-2xl font-black text-cream">
+              {initial}
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <input
+                  value={nameDraft ?? user?.name ?? ""}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  onFocus={() => {
+                    if (nameDraft === null) setNameDraft(user?.name ?? "");
+                  }}
+                  onBlur={() => {
+                    const trimmed = (nameDraft ?? "").trim();
+                    if (trimmed && trimmed !== user?.name) saveName();
+                    else setNameDraft(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                  }}
+                  className="font-display text-2xl font-black bg-sand border-b-2 border-line px-3 py-1 -mx-3 rounded-lg outline-none transition focus:border-accent w-full max-w-xs"
+                  placeholder="Your name"
+                  maxLength={40}
+                />
+                {nameDraft !== null && nameDraft.trim() !== (user?.name ?? "") && (
+                  <button
+                    onClick={saveName}
+                    disabled={nameSaving || !nameDraft.trim()}
+                    className="shrink-0 rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-white transition hover:bg-accent-deep disabled:opacity-50"
+                  >
+                    {nameSaving ? "Saving…" : "Save"}
+                  </button>
+                )}
+              </div>
+              <p className="text-sm text-ink-soft">{user?.email}</p>
+              <p className="mt-0.5 text-[11px] text-ink-soft">Click the name above to edit it</p>
+              <div className="mt-3 max-w-md">
+                <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-ink-soft">
+                  Payout details: where your earnings land
+                </p>
+                <PayoutDetails
+                  uid={uid}
+                  phoneValue={phoneValue}
+                  onPhoneChange={(v) => setPhoneDraft(v)}
+                  onSavePhone={savePhone}
+                />
+              </div>
+              <div className="mt-3 max-w-sm">
+                <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-ink-soft">
+                  Your area: see pieces near you
+                </p>
+                <LocationPicker value={profileLocationId} onChange={saveArea} />
+              </div>
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-3">
+        <div className="flex flex-col gap-3 justify-end sm:flex-row sm:items-center sm:justify-end">
           <div className="flex gap-6">
             <div>
               <p className="font-display text-2xl font-black">{formatKes(earned)}</p>
@@ -324,11 +326,17 @@ function SignedIn() {
           </ul>
         ) : listings !== null ? (
           <div className="rounded-2xl border border-dashed border-line bg-paper p-10 text-center">
-            <p className="text-4xl">🧥</p>
-            <p className="mx-auto mt-3 max-w-xs text-sm text-ink-soft">
-              Your closet is empty. Add your first piece. It shows up here, then hits the feed
-              once approved.
-            </p>
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-line bg-paper/60">
+                <svg className="h-7 w-7 text-ink-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 19.5A4.5 4.5 0 0 1 11.5 15H7A6 6 0 0 1 13 7.5v-2A4.5 4.5 0 0 1 16 10.5A4.5 4.5 0 0 1 20.5 15 4.5 4.5 0 0 1 16 19.5Z"/>
+                  <path d="M8 19.5A4.5 4.5 0 0 0 12.5 15H17"/>
+                </svg>
+              </div>
+              <p className="max-w-xs text-sm text-ink-soft">
+                Your closet is empty. Add your first piece. It shows up here, then hits the feed once approved.
+              </p>
+            </div>
             <button
               onClick={openSell}
               className="mt-5 rounded-full bg-ink px-6 py-3 text-sm font-bold uppercase tracking-wider text-cream transition hover:bg-accent"
@@ -543,21 +551,26 @@ function PayoutDetails({
     "w-full rounded-xl border border-line bg-paper px-3 py-2 text-sm outline-none transition focus:border-ink disabled:opacity-60";
 
   return (
-    <div className="space-y-2.5 rounded-2xl border border-line bg-sand/40 p-3">
-      <div className="grid grid-cols-2 gap-1 rounded-full border border-line bg-paper p-1">
-        {(["mpesa", "bank"] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => setMethod(m)}
-            className={`rounded-full py-1.5 text-xs font-bold transition ${
-              method === m ? "bg-ink text-cream shadow" : "text-ink-soft hover:text-ink"
-            }`}
-          >
-            {m === "mpesa" ? "📱 M-Pesa" : "🏦 Bank"}
-          </button>
-        ))}
-      </div>
+          <div className="rounded-2xl border border-line bg-paper p-4">
+        <div className="grid grid-cols-2 gap-2">
+          {(["mpesa", "bank"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMethod(m)}
+              className={`rounded-xl border px-3 py-2 text-xs font-bold transition sm:py-2.5 ${
+                method === m
+                  ? "border-ink bg-ink text-cream shadow"
+                  : "border-line bg-paper text-ink-soft hover:border-ink hover:text-ink"
+              }`}
+            >
+              <span className="flex items-center justify-center gap-1.5">
+                {m === "mpesa" ? "M-Pesa" : "Bank"}
+                {method === m && <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M12 8v8"/></svg>}
+              </span>
+            </button>
+          ))}
+        </div>
 
       {method === "mpesa" ? (
         <input
@@ -568,10 +581,11 @@ function PayoutDetails({
           className={inputCls}
         />
       ) : (
-        <>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <select
             value={bankCode}
             onChange={(e) => setBankCode(e.target.value)}
+            aria-label="Your bank"
             className={inputCls}
             disabled={banks === null}
           >
@@ -595,7 +609,7 @@ function PayoutDetails({
             placeholder="Account name"
             className={inputCls}
           />
-        </>
+        </div>
       )}
 
       <button
@@ -607,6 +621,26 @@ function PayoutDetails({
       </button>
     </div>
   );
+}
+
+/** One shared status pill used by every payout row, the order card edge
+ *  cases and the no-show banner. Dark charcoal text on an amber fill is
+ *  AA (≥7:1); on lime it's also fine. */
+function statusCls(s: string): string {
+  switch (s) {
+    case "paid":
+      return "bg-lime text-lime-ink";
+    case "failed":
+      return "bg-sand text-ink-soft";
+    case "escrow":
+      return "bg-amber-400 text-amber-ink";
+    case "processing":
+      return "bg-amber-400 text-amber-ink";
+    case "cancelled":
+      return "bg-sand text-ink-soft";
+    default:
+      return "bg-sand text-ink-soft";
+  }
 }
 
 /** One payout row: shows receipt when paid, and a "never received it?"
@@ -647,38 +681,30 @@ function PayoutRow({
           <p className="font-display text-sm font-extrabold">{formatKes(p.amountKes)}</p>
           <p className="text-xs text-ink-soft">{formatDate(p.createdAt)}</p>
           {p.status === "escrow" && (
-            <p className="mt-0.5 text-xs text-ink-soft">
-              🔒 Held in escrow until the buyer confirms delivery
-              {p.escrowReleaseAt
-                ? ` (auto-releases ${formatDate(p.escrowReleaseAt)})`
-                : ""}.
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-soft">
+              <svg className="h-3.5 w-3.5 text-ink-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              Held in escrow until the buyer confirms delivery
+              {p.escrowReleaseAt ? ` · auto-releases ${formatDate(p.escrowReleaseAt)}` : "."}
             </p>
           )}
           {p.status === "paid" && p.paidAt && (
-            <p className="mt-0.5 text-xs text-ink-soft">
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-soft">
               Received {formatDate(p.paidAt)}
-              {p.providerRef ? ` · Receipt ${p.providerRef}` : ""}
+              {p.providerRef ? <span className="text-ink-soft/70">· Receipt {p.providerRef}</span> : ""}
             </p>
           )}
           {p.failureReason && <p className="mt-0.5 text-xs text-accent">{p.failureReason}</p>}
         </div>
         <span
-          className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
-            p.status === "paid"
-              ? "bg-lime text-lime-ink"
-              : p.status === "failed"
-                ? "bg-sand text-ink-soft"
-                : p.status === "escrow"
-                  ? "bg-accent-soft text-accent"
-                  : "bg-sand text-ink-soft"
-          }`}
+          className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${statusCls(p.status)}
+        `}
         >
           {p.status === "paid"
             ? "Paid ✓"
             : p.status === "failed"
               ? "Failed"
               : p.status === "escrow"
-                ? "Escrow 🔒"
+                ? "Escrow"
                 : p.status === "processing"
                   ? "Sending…"
                   : "Pending"}
@@ -766,7 +792,7 @@ function ClosetCard({
   const boosted = boostedUntil(l);
   return (
     <li className="group overflow-hidden rounded-2xl border border-line bg-paper">
-      <div className="relative aspect-square overflow-hidden bg-sand">
+      <div className="relative aspect-square overflow-hidden bg-paper">
         <Image
           src={l.imageUrl}
           alt={l.title}
@@ -781,7 +807,7 @@ function ClosetCard({
               l.status === "sold"
                 ? "bg-lime text-lime-ink"
                 : l.status === "pending"
-                  ? "bg-accent-soft text-accent"
+                  ? "bg-amber-400 text-amber-ink"
                   : "bg-paper/90 text-ink backdrop-blur"
             }`}
           >
@@ -790,12 +816,24 @@ function ClosetCard({
           {boosted && (
             <span
               title={`Pinned to the top of the feed until ${formatDate(boosted)}`}
-              className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-lime-ink"
+              className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-ink"
             >
               Boosted ⚡
             </span>
           )}
         </div>
+        {/* Fallback frame when the cover is still the seeded placeholder.
+            Keeps the card grid looking even on mobile before the real photo
+            loads. */}
+        {!l.imageUrl || !/^https?:\/\//.test(l.imageUrl) ? (
+          <div className="absolute inset-0 flex items-center justify-center rounded-xl border border-line bg-ink/5">
+            <svg className="h-6 w-6 text-ink-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <path d="M21 15l-5-5L5 21"/>
+            </svg>
+          </div>
+        ) : null}
       </div>
       <div className="p-4">
         <p className="truncate font-display text-sm font-bold">{l.title}</p>
@@ -817,7 +855,7 @@ function ClosetCard({
             ))}
         </div>
         {l.status === "active" && l.locationLabel && (
-          <p className="mt-1.5 text-[11px] text-ink-soft">📍 Meet near {l.locationLabel}</p>
+          <p className="mt-1.5 text-[11px] text-ink-soft"><svg className="h-3.5 w-3.5 inline-block mr-1 text-ink-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s7-6.5 7-11a7 7 0 0 0-14 0c0 4.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>Meet near {l.locationLabel}</p>
         )}
         {l.status === "sold" && l.orderId && (
           <div className="mt-3 space-y-3 border-t border-line pt-3">
@@ -882,6 +920,8 @@ function OrderCard({
   const held = Boolean(order.escrowHeldAt && !order.receiptConfirmedAt && !order.cancelledAt);
   // Never-paid orders (abandoned checkout / payment failed / listing removed)
   // get NO meetup UI — no chat prompt, no pickup spot, no actions.
+  
+
   const paid = Boolean(order.completedAt || order.escrowHeldAt || order.receiptConfirmedAt);
   const noShowReady = Boolean(
     held &&
@@ -889,19 +929,8 @@ function OrderCard({
       order.completedAt &&
       now >= order.completedAt.getTime() + NO_SHOW_WINDOW_MS
   );
-  const status = order.cancelledAt
-    ? { label: "Cancelled", cls: "bg-sand text-ink-soft" }
-    : order.disputedAt
-      ? { label: "Dispute under review", cls: "bg-accent-soft text-accent" }
-      : order.receiptConfirmedAt
-        ? { label: "Received ✓", cls: "bg-lime text-lime-ink" }
-        : held
-          ? { label: "Awaiting pickup", cls: "bg-amber-400 text-lime-ink" }
-          : order.status === "failed"
-            ? { label: "Payment failed", cls: "bg-sand text-ink-soft" }
-            : order.status === "pending"
-              ? { label: "Payment not completed", cls: "bg-sand text-ink-soft" }
-              : { label: "Paid", cls: "bg-sand text-ink-soft" };
+
+
 
   const submitDispute = async () => {
     if (disputeBusy) return;
@@ -964,7 +993,7 @@ function OrderCard({
   return (
     <li className="rounded-2xl border border-line bg-paper p-4">
       <div className="flex items-center gap-4">
-        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sand">
+        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-paper">
           {imgValid ? (
             <Image
               src={imgSrc}
@@ -974,8 +1003,11 @@ function OrderCard({
               className="object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-xl">
-              🧵
+            <div className="flex h-full w-full items-center justify-center rounded-lg border border-line bg-ink/5">
+              <svg className="h-5 w-5 text-ink-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 19.5A4.5 4.5 0 0 1 11.5 15H7A6 6 0 0 1 13 7.5v-2A4.5 4.5 0 0 1 16 10.5A4.5 4.5 0 0 1 20.5 15 4.5 4.5 0 0 1 16 19.5Z"/>
+                <path d="M8 19.5A4.5 4.5 0 0 0 12.5 15H17"/>
+              </svg>
             </div>
           )}
         </div>
@@ -999,18 +1031,32 @@ function OrderCard({
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           <p className="whitespace-nowrap font-display text-sm font-extrabold">{formatKes(order.amountKes)}</p>
+          {/* eslint-disable-next-line react/jsx-key */}
           <span
-            className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${status.cls}`}
+            className={
+              "rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider " +
+              statusCls(
+                order.status === "pending" ? "pending"
+                : order.status === "completed" ? "paid"
+                : order.status === "failed" ? "failed"
+                : "pending"
+              )
+            }
           >
-            {status.label}
+            {order.status === "completed" ? "Paid ✓" : order.status === "pending" ? "Pending" : "Failed"}
           </span>
         </div>
       </div>
 
       {!order.cancelledAt && paid && (
-        <div className="mt-4 space-y-3 border-t border-line pt-3">
+                  <div className="mt-4 space-y-3 border-t border-line pt-3">
           <div className="flex items-start gap-2 rounded-xl bg-sand/60 px-3 py-2.5">
-            <span className="text-base">📍</span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-paper text-ink-soft">
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 21s7-6.5 7-11a7 7 0 0 0-14 0c0 4.5 7 11 7 11Z"/>
+                <circle cx="12" cy="10" r="2.5"/>
+              </svg>
+            </span>
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-ink-soft">Meetup point</p>
               <p className="text-sm">
@@ -1135,7 +1181,7 @@ function OrderCard({
                 </a>
               ) : (
                 <label className="mt-2 inline-block cursor-pointer rounded-full border border-accent px-3 py-1 text-[11px] font-bold text-accent transition hover:bg-accent hover:text-white">
-                  {proofBusy ? "Uploading…" : "📷 Attach delivery evidence"}
+                  {proofBusy ? "Uploading…" : <><svg className="h-3.5 w-3.5 inline-block mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8l3 2"/></svg>Attach delivery evidence</>}
                   <input
                     type="file"
                     accept="image/*"
@@ -1315,7 +1361,7 @@ function SellerDisputeNotice({ orderId }: { orderId: string }) {
         </a>
       ) : (
         <label className="mt-2 inline-block cursor-pointer rounded-full border border-accent px-3 py-1 text-[11px] font-bold text-accent transition hover:bg-accent hover:text-white">
-          {busy ? "Uploading…" : "📷 Attach delivery proof"}
+          {busy ? "Uploading…" : <><svg className="h-3.5 w-3.5 inline-block mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8l3 2"/></svg>Attach delivery proof</>}
           <input type="file" accept="image/*" className="sr-only" onChange={attachProof} disabled={busy} />
         </label>
       )}

@@ -10,6 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toggleWishlist, useWishlistIds } from "@/lib/db";
 import { isVideoUrl } from "@/lib/constants";
 import { gsap, useGSAP } from "@/lib/gsap";
+import { Check, Heart, Share2, Images, Play, Plus, X } from "lucide-react";
 import RatingStars from "./ui/RatingStars";
 import ProductGalleryModal from "./ProductGalleryModal";
 
@@ -218,7 +219,7 @@ export default function ProductCard({
           )}
           {coverIsVideo && (
             <span className="rounded-full bg-ink/80 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-cream backdrop-blur">
-              🎬 Video
+              <Play className="h-3 w-3" /> Video
             </span>
           )}
           {product.imageUrls && product.imageUrls.length > 1 && (
@@ -229,28 +230,10 @@ export default function ProductCard({
               }}
               className="rounded-full bg-paper/90 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-ink backdrop-blur transition hover:bg-paper"
             >
-              📷 {product.imageUrls.length} media
+              <Images className="h-3 w-3" /> {product.imageUrls.length} media
             </button>
           )}
         </div>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleSave();
-          }}
-          aria-label={isSaved ? "Remove from saved" : "Save piece"}
-          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-paper/85 text-lg backdrop-blur transition hover:scale-110 active:scale-95"
-        >
-          {isSaved ? "❤️" : "🤍"}
-        </button>
-        <button
-          onClick={handleShare}
-          aria-label="Share this piece"
-          className="absolute right-3 top-14 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-paper/85 text-sm backdrop-blur transition hover:scale-110 active:scale-95"
-        >
-          📤
-        </button>
 
         {product.imageUrls && product.imageUrls.length > 1 && (
           <div className="absolute left-3 top-14 flex flex-col gap-1">
@@ -264,6 +247,27 @@ export default function ProductCard({
             ))}
           </div>
         )}
+
+        {/* Wishlist heart — top-right. Share sits next to it at the same
+            vertical so there is never a second floating control on the
+            photo. */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSave();
+          }}
+          aria-label={isSaved ? "Remove from saved" : "Save piece"}
+          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-paper/85 text-lg backdrop-blur transition hover:scale-110 active:scale-95"
+        >
+          <Heart className={`h-4.5 w-4.5 ${isSaved ? "fill-current text-rose-500" : "text-ink-soft"}`} />
+        </button>
+        <button
+          onClick={handleShare}
+          aria-label="Share this piece"
+          className="absolute right-15 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-paper/85 text-sm backdrop-blur transition hover:scale-110 active:scale-95"
+        >
+          <Share2 className="h-4.5 w-4.5 text-ink-soft" />
+        </button>
 
         <div className="absolute inset-x-3 bottom-3 z-10 translate-y-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
           {ownsIt ? (
@@ -285,13 +289,13 @@ export default function ProductCard({
       </div>
 
       <div className="mt-3 flex items-start justify-between gap-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-[11px] font-bold uppercase tracking-widest text-ink-soft">
             {product.brand} · {product.category}
           </p>
           <Link
             href={`/product/${product.id}`}
-            className="mt-0.5 block truncate font-display text-base font-bold transition hover:text-accent"
+            className="max-title-h truncate font-display text-base font-bold transition hover:text-accent"
           >
             {product.title}
           </Link>
@@ -323,7 +327,7 @@ export default function ProductCard({
             )}
           </div>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <div className="flex shrink-0 flex-col items-end gap-1">
           <p className="whitespace-nowrap font-display text-lg font-extrabold">{formatKes(product.priceKes)}</p>
           {!ownsIt && (
             <button

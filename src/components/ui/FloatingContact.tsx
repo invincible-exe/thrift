@@ -86,6 +86,10 @@ export default function FloatingContact() {
     // z-40 keeps the FAB below modal overlays (z-50) so it never floats over
     // the checkout/auth flows.
     <div ref={root} className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3">
+      {/* Reserve bottom-of-page scroll room so the chat card never sits on
+          an interactive card button (e.g. the BOOST · KES 50 card in
+          My closet). */}
+      <div className="absolute inset-x-0 bottom-26" />
       {open && (
         <div
           ref={cardRef}

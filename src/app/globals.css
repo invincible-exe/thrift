@@ -14,38 +14,300 @@
 /* Semantic tokens — swap these values under .dark so every bg-cream /
    text-ink / border-line utility across the app flips automatically. */
 :root {
-  --cream: #f3eee7;
-  --paper: #faf7f1;
-  --ink: #16130f;
-  --ink-soft: #5b544a;
-  --line: #e3dbcf;
-  --sand: #e9e1d5;
-  --accent: #ff4d00;
-  --accent-deep: #e04300;
-  --accent-soft: #ffe3d4;
-  --lime: #d9f24d;
-  /* Text color that must stay DARK in both themes: lime/amber fills are
-     bright in dark mode too, but `ink` flips light there, so badges and
-     buttons on those fills would become unreadable. */
-  --lime-ink: #16130f;
+  /* ── Shared light-mode baseline ────────────────────────────────── */
+  /* Sand + paper were stitched together (two different warm greys).
+     Now a single warm-paper family: cream page, paper cards, sand as
+     the subtle surface grade inside cards. */
+  --cream: #f4f0e6;
+  --paper: #f1ece2;
+  --sand: #e7ded2;
+  --ink: #1c1812;
+  --ink-soft: #5a5044;
+  --line: #ddd2c0;
+
+  /* Accent family — funded by the 10% commission. Burnt-orange/amber:
+     warm, like a hand-graded rack label. */
+  --accent: #e8591f;
+  --accent-deep: #c94a14;
+  --accent-soft: #fde8da;
+
+  /* Light-mode text colours for amber/charcoal fills. These are NOT
+     bright-lime: they are dark so text on amber stays AA. */
+  --amber-ink: #3a2c0b;
+
+  /* Dark-mode baseline (swapped values below). */
+  --paper-d: #1c1812;
+  --sand-d: #2a2219;
+  --ink-d: #f4f0e6;
+  --ink-soft-d: #a89a84;
+  --line-d: rgb(244 239 227 / 0.14);
+
   color-scheme: light;
 }
 
 .dark {
   --cream: #14110e;
-  --paper: #1e1915;
-  --ink: #f2ede4;
-  --ink-soft: #a89e8f;
-  --line: rgb(242 237 228 / 0.14);
-  --sand: #2b251e;
-  --accent: #ff5a1f;
-  --accent-deep: #ff6a2b;
-  --accent-soft: #34190c;
-  --lime: #d9f24d;
+  --paper: var(--paper-d);
+  --sand: var(--sand-d);
+  --ink: var(--ink-d);
+  --ink-soft: var(--ink-soft-d);
+  --line: var(--line-d);
+  --accent: #e8591f;
+  --accent-deep: #c94a14;
+  --accent-soft: #3a1e0e;
+  --amber-ink: #f4f0e6;
   color-scheme: dark;
+
+  /* Charcoal stat numbers on the dark card in dark mode: bright amber on
+     charcoal is ~6:1, fine for our bold stats. */
+  --p2p-stat: #2a2219;
 }
 
-/* `inline` makes utilities reference the variable (e.g. `background:
+/* ── Fallbacks for Tailwind v4 utilities not yet registered ──────────── */
+
+/* A custom max-height + overflow hidden is more reliable than
+   line-clamp in this codebase (the auto plugin is not installed), and it
+   gives the card title a tight, deliberate line budget. */
+
+.max-title-h {
+  max-height: 4.25rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Balance the pitch on the landing hero so the marquee and 3D card sit on
+   one vertical axis without the copy losing its two-line anchor. */
+.hero-balance {
+  display: flex;
+  align-items: stretch;
+}
+
+.hero-balance > * {
+  flex: 1;
+}
+
+/* Balance the gap between the title and the KES price on mobile: a tiny
+   push-down keeps the price sitting flush against a two-line title. */
+.balance-title + .balance-price {
+  margin-top: 2px;
+}
+
+/* Smooth vertical rhythm on account page cards: consistent inner padding,
+   aligned top so borders and text sit on the same grid. */
+.card-sharp {
+  --card-inner: 16px;
+  padding: var(--card-inner);
+  display: flex;
+  flex-direction: column;
+}
+
+.card-sharp > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* One shared rhythm for every account page card: consistent padding, top
+   aligned so borders and text sit on the same grid, and a subtle
+   background grade for depth without a second colour class. */
+.sharp-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+  padding: 16px;
+}
+
+.sharp-card > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* Tiny utility: keep the KES price balanced next to a wrapped title */
+.tight-price {
+  margin-top: 2px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.stat-grid .stat-num {
+  font-family: var(--font-archivo);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.stat-grid .stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  line-height: 1.3;
+}
+
+/* Standalone location filter tweaks: consistent dropdown heights and
+   touch target radii so the dropdowns and pills share one vertical
+   rhythm. */
+.loc-filters,
+.loc-pills {
+  display: grid;
+  gap: 8px;
+}
+
+.loc-filters > *,
+.loc-pills > * {
+  min-width: 0;
+}
+
+/* Keep dropdown option lists from overflowing the card on small phones */
+.loc-filters select:not(:focus),
+.loc-pills select:not(:focus) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Slightly tighter, identical rhythm for the gift-basket stat group so
+   the three numbers read as one deliberate unit. */
+.stat-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.stat-group > * {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+}
+
+/* Secondary nav: active tab is a crisp pill so the mobile e-commerce
+   structure reads as one coherent set of controls. */
+.nav-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-family: var(--font-archivo);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 1px solid transparent;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.nav-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--cream);
+  -webkit-mask-image: radial-gradient(circle at var(--x, 50%) var(--y, 50%), #000 40%, #0000 70%);
+  mask-image: radial-gradient(circle at var(--x, 50%) var(--y, 50%), #000 40%, #0000 70%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.nav-pill:hover {
+  color: var(--ink);
+}
+
+.nav-pill[aria-selected="true"] {
+  color: var(--cream);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.nav-pill[aria-selected="true"]::before {
+  opacity: 1;
+}
+
+/* Landing-page stat group (SellCTA) uses the same visual family as the
+   account stat cards: identical border radius, padding and a subtle
+   background grade. */
+.stat-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  padding: 14px 16px;
+}
+
+.stat-card .stat-num {
+  font-family: var(--font-archivo);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.stat-card .stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  line-height: 1.3;
+}
+
+.stat-group .stat-num {
+  font-family: var(--font-archivo);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+/* Secondary nav helper: the "New Drops / Saved / Available / My closet"
+   row under the header takes a crisp underline + pill when active. */
+.nav-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nav-row .nav-pill {
+  padding: 10px 16px;
+}
+
+.nav-row .nav-pill[aria-selected="true"] {
+  color: var(--cream);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.nav-row .nav-pill[aria-selected="true"]::before {
+  opacity: 1;
+}
+
+
+}
+
+.stat-group .stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  line-height: 1.3;
+}
+
+/* ── `inline` makes utilities reference the variable (e.g. `background:
    var(--cream)`) so the runtime .dark swap above takes effect everywhere. */
 @theme inline {
   --color-cream: var(--cream);
@@ -57,8 +319,14 @@
   --color-accent: var(--accent);
   --color-accent-deep: var(--accent-deep);
   --color-accent-soft: var(--accent-soft);
-  --color-lime: var(--lime);
-  --color-lime-ink: var(--lime-ink);
+
+  /* Charcoal-on-cream AA tokens: the dark fill the lime/amber stat
+     numbers and badges live on in light mode.
+
+     WCAG AA (large text) needs 3:1; our stats are bold ~24-28px so the
+     computed relative luminance of #1c1812 on #f4f0e6 is ~15:1. */
+  --color-amber-ink: var(--amber-ink);
+  --color-ink-invert: var(--ink-d);
 
   --font-display: var(--font-archivo);
   --font-sans: var(--font-inter);
@@ -67,6 +335,21 @@
 
 html {
   scroll-behavior: smooth;
+  /* Reserve room for the floating chat button and FAB so page containers
+      never have their bottom interactive chrome collide with the
+      bottom-right floating elements. */
+  padding-bottom: 120px;
+}
+
+/* Per-section override: the two landing layouts that sit above the chat
+    button already carry their own padding and are positioned above the
+    FAB, so they ignore the global bottom inset. */
+#sell,
+#drops,
+#new-drops,
+#near-you,
+#closet {
+  padding-bottom: 0;
 }
 
 body {
